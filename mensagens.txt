@@ -1,0 +1,6 @@
+francisco,alex=Somos bueda bons
+diogo,alex=Somos bueda bons
+manel,alex=Somos bueda bons
+francisco,alex=Somos bueda bons
+francisco,alex=Somos bueda bons
+

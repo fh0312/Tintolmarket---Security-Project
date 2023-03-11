@@ -1,11 +1,19 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Scanner;
 
 
 public class TintolmarketServer {
 
 	private static int PORT;
+	
+	private HashMap<String,Client> clients; 
+	
+	private File users;
 
 	public static void main(String[] args) {
         if (args.length != 1) {
@@ -19,11 +27,40 @@ public class TintolmarketServer {
         
 	}
 	
+	public TintolmarketServer() {
+		this.clients = new HashMap<String,Client>();
+		this.users = new File("users.txt");
+		if(users.exists()) {
+			Scanner scanner;
+			try {
+				scanner = new Scanner(users);
+				String currentLine;
+				while(scanner.hasNextLine()){
+					currentLine = scanner.nextLine();
+					
+				}
+				scanner.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		else{
+			try {
+				users.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+	}
+	
 	public void startServer (){
 		ServerSocket sSoc = null;
         
 		try {
 			sSoc = new ServerSocket(PORT);
+			
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 			System.exit(-1);
@@ -31,11 +68,11 @@ public class TintolmarketServer {
          
 		while(true) {
 			try {
-				
 				Socket inSoc = sSoc.accept();
-				ServerThread newServerThread = new ServerThread(inSoc);
+				ServerThread newServerThread = new ServerThread(inSoc,clients);
 				System.out.println("server:\tConnection started!!");
 				newServerThread.start();
+				
 		    }
 		    catch (IOException e) {
 		        e.printStackTrace();
