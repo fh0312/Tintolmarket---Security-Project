@@ -21,7 +21,7 @@ public class Client {
 		this.pswd = p;
 		this.balance = 200.0;
 		
-		this.data = new File (this.user+".txt");
+		this.data = new File ("users//"+this.user+".txt");
 		try {
 			data.createNewFile();
 		} catch (IOException e) {

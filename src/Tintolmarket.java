@@ -47,13 +47,23 @@ public class Tintolmarket {
 			if(cliSocket.isConnected()) {
 				outStream.writeObject(userID);
 				outStream.writeObject(pwd);
-				if(inStream.readBoolean()) { //loged in successfully
-					displayOptions();
+				try {
+					String answer = (String)inStream.readObject();
+					if(answer.equals("true")) { //loged in successfully
+						displayOptions();
+						
+					}
+					else if(answer.equals("false")){
+						System.out.println("Incorrect password! Please try again!");
+						System.exit(-1);
+					}
+					else {
+						System.out.println("ERRO"+answer);
+					}
 					
-				}
-				else {
-					System.out.println("Incorrect password! Please try again!");
-					System.exit(-1);
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
 			

@@ -74,22 +74,22 @@ public class ServerThread extends Thread {
 						FileWriter writer = new FileWriter(users);
 						writer.write(user+":"+passwd+"\n");
 						writer.close();
-						outStream.writeBoolean(true);
+						outStream.writeObject("true");
 						
 					}
 					else {										// Current User
 						Client cli = clients.get(user);
 						if(cli.validate(passwd)) {				// login bem sucedido
-							outStream.writeBoolean(true);
+							outStream.writeObject("true");
 						}
 						else {
-							outStream.writeBoolean(false);
+							outStream.writeObject("false");
 							//FECHAR E MANDAR TENTAR NOVAMENTE
 							//System.exit(-1);
 						}
 					}
 					while(!this.socket.isClosed()) {
-						String command = (String) inStream.readObject();
+						//String command = (String) inStream.readObject();
 						
 					}
 					
