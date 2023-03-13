@@ -1,7 +1,0 @@
-balance=167.50
-vinhos:
-amadora=3;3.05
-setubal=7;4.03
-:
-
-

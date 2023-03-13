@@ -1,5 +1,0 @@
-foto=vinho.png
-rating=4.4
-evaluations=34
-sellers:
-user3=quant;price
