@@ -8,15 +8,16 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Scanner;
 
 public class ServerThread extends Thread {
 		
-		private static final String WINESPATH = "wines//";
-		private static final String CLIPATH = "users//";
-		private static final String MSGPATH = "clients//";
+		private static final String SERVERPATH = "server_files//";
+		private static final String WINESPATH = SERVERPATH +"wines//";
+		private static final String CLIPATH = SERVERPATH +"users//";
+		private static final String MSGPATH = SERVERPATH +"messages//";
 		
 
 		/**
@@ -66,7 +67,7 @@ public class ServerThread extends Thread {
 				HashMap<String,Tintol> wines) {
 			this.socket = inSoc;
 			this.sells = sells;
-			this.users = new File("users.txt");
+			this.users = new File(SERVERPATH+"users.txt");
 			this.clients = clients;
 			this.sells = sells;
 			this.wines = wines;
@@ -117,9 +118,12 @@ public class ServerThread extends Thread {
 							//System.exit(-1);
 						}
 					}
-					while(!this.socket.isClosed()) {
-						String cmd = (String) inStream.readObject(); //command received
-						System.out.println("Command is :"+cmd);
+					String cmd ="";
+					
+					
+					while((cmd = (String) inStream.readObject())!="-1") {
+						
+						System.out.println("server:\tCommand received: "+cmd);
 						String op = cmd.split("\\s+")[0];
 						if(op.equals("a") || op.equals("add")) {
 							addWine(cmd);
@@ -145,10 +149,12 @@ public class ServerThread extends Thread {
 						else if(op.equals("r") || op.equals("read")){
 							read(cmd);
 						}
-						
 					}
 					
 					
+				}
+				catch(SocketException socket) {
+					System.out.println("server:\t "+user+" logged out! - Connection ended");
 				}
 				catch (Exception e) {
 					e.printStackTrace();
@@ -212,14 +218,26 @@ public class ServerThread extends Thread {
 					
 
 					int bytesRead =0;
-					while((bytesRead = inStream.read(buff, 0, 1024)) >0) {
+					long size =0;
+					try {
+						size = (long) inStream.readObject();
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					int alreadyRead =0;
+					while(alreadyRead + (bytesRead = inStream.read(buff, 0, 1024)) <size) {
 						output.write(buff, 0, bytesRead);
+						alreadyRead += bytesRead;
 					}
 					output.close();
 					fout.close();
 					
 					Tintol tintol = new Tintol(parts[1], img);
 					this.wines.put(tintol.getName(), tintol);
+					
+					outStream.writeObject((String)("Tintol - "+tintol.getName()+" added!"));
+					System.out.println("server:\t(Tintol) - "+tintol.getName()+" added!");
 				}
 
 			} catch (IOException e) {

@@ -1,6 +1,7 @@
 package server;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -11,7 +12,8 @@ public class Client {
 	private String pswd;
 	private Double balance;
 	private File data ;
-	private String PATH = "users//";
+	private static final String SERVERPATH = "server_files//";
+	private static final String CLIPATH = SERVERPATH +"users//";
 	
 	private ArrayList<Sell> sells;
 	
@@ -22,7 +24,7 @@ public class Client {
 		this.pswd = p;
 		this.balance = 200.0;
 		
-		this.data = new File ("users//"+this.user+".txt");
+		this.data = new File (CLIPATH+this.user+".txt");
 		try {
 			data.createNewFile();
 		} catch (IOException e) {
@@ -31,8 +33,25 @@ public class Client {
 		}
 		
 		this.sells = new ArrayList<Sell>();
+		writeStats();
 	}
 	
+	private void writeStats() {
+		try {
+			FileWriter fw = new FileWriter(this.data);
+			StringBuffer sb = new StringBuffer();
+			sb.append("balance="+this.balance);
+			sb.append("\n");
+			sb.append("password="+this.pswd);
+			sb.append("\n");
+			fw.append(sb.toString());
+			fw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+
 	/**
 	 * Loads and creates a client by his data file and password.
 	 *(This constructor only creates clients that were created somewhere in time by this server)
@@ -41,9 +60,7 @@ public class Client {
 	 * @param password - client´s password 
 	 */
 	public Client(File data) {
-		System.out.println(data.getName());
 		this.user = data.getName().split("\\.")[0];
-		System.out.println("User: "+user+" created!");
 		this.data=data;
 		this.sells = new ArrayList<Sell>();
 		
@@ -66,7 +83,7 @@ public class Client {
 	 * @return true if p is the user's password
 	 */
 	public boolean validate(String p) {
-		return p == this.pswd;
+		return p.equals(pswd);
 	}
 	
 	/**

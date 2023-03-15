@@ -4,16 +4,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
 
 public class TintolmarketServer {
-	
-	private static final String WINESPATH = "wines//";
-	private static final String CLIPATH = "users//";
-	private static final String MSGPATH = "clients//";
+	private static final String SERVERPATH = "server_files//";
+	private static final String WINESPATH = SERVERPATH +"wines//";
+	private static final String CLIPATH = SERVERPATH +"users//";
+	private static final String MSGPATH = SERVERPATH +"messages//";
 
 	private static int PORT;
 	
@@ -40,7 +39,8 @@ public class TintolmarketServer {
 	
 	public TintolmarketServer() {
 		this.clients = new HashMap<String,Client>();
-		this.users = new File("users.txt");
+		this.wines = new HashMap<String,Tintol>();
+		this.users = new File(SERVERPATH+"users.txt");
 		if(users.exists()) {
 			loadWines();
 			loadUsers();
@@ -48,6 +48,7 @@ public class TintolmarketServer {
 		}
 		else{
 			try {
+				new File(SERVERPATH.substring(0,SERVERPATH.length()-2)).mkdir();
 				users.createNewFile();
 				new File(WINESPATH.substring(0,WINESPATH.length()-2)).mkdir();
 				new File(MSGPATH.substring(0,MSGPATH.length()-2)).mkdir();
@@ -68,8 +69,12 @@ public class TintolmarketServer {
 		if(winesDir.listFiles()!=null) {
 			for (File wineData : winesDir.listFiles()) {
 				String tintolName = wineData.getName().split("\\.")[0];
+				String ext = wineData.getName().split("\\.")[1];
 				if ( ! wines.containsKey(tintolName) ){
-					wines.put(wineData.getName().split("\\.")[0], new Tintol(tintolName,wineData));
+					if(ext.equals("txt")){
+						//TODO
+					}
+					
 				}
 			}
 		}
@@ -77,6 +82,7 @@ public class TintolmarketServer {
 
 	private void loadUsers() {
 		try {
+
 			Scanner scanner = new Scanner(users);
 			String currentLine;
 			while(scanner.hasNextLine()){ //For each user in user.txt file :
@@ -84,6 +90,9 @@ public class TintolmarketServer {
 				String user = currentLine.split(":")[0];
 				File clientData = new File(CLIPATH+user+".txt");
 				Client newClient = new Client(clientData);
+				
+				System.out.println("server:\tUser: "+user+" loaded");
+				
 				this.clients.put(user,newClient);
 				Scanner scCli = new Scanner(clientData);
 				scCli.nextLine();
@@ -118,8 +127,6 @@ public class TintolmarketServer {
 			try {
 				Socket inSoc = sSoc.accept();
 				ServerThread newServerThread = new ServerThread(inSoc,clients,sells,wines);
-				
-				System.out.println("server:\tConnection started!!");
 				newServerThread.start();
 		    }
 		    catch (IOException e) {
