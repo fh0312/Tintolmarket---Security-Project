@@ -1,3 +1,4 @@
+package server;
 
 public class Sell {
 	
@@ -39,6 +40,15 @@ public class Sell {
 	 */
 	public Double getPrice() {
 		return price;
+	}
+
+	public Client getClient() {
+		return this.user;
+	}
+
+	@Override
+	public String toString() {
+		return wine + "=" + quant + ";" + price + "\n";
 	}
 	
 	
