@@ -1,3 +1,4 @@
+package server;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -9,6 +10,10 @@ import java.util.Scanner;
 
 
 public class TintolmarketServer {
+	
+	private static final String WINESPATH = "wines//";
+	private static final String CLIPATH = "users//";
+	private static final String MSGPATH = "clients//";
 
 	private static int PORT;
 	
@@ -16,7 +21,7 @@ public class TintolmarketServer {
 	
 	private HashMap<String,Tintol> wines; 
 	
-	public ArrayList<Sell> sells;
+	public SellsCatalog sells;
 	
 	private File users;
 	
@@ -44,8 +49,9 @@ public class TintolmarketServer {
 		else{
 			try {
 				users.createNewFile();
-				new File("wines").mkdir();
-				new File("messages").mkdir();
+				new File(WINESPATH.substring(0,WINESPATH.length()-2)).mkdir();
+				new File(MSGPATH.substring(0,MSGPATH.length()-2)).mkdir();
+				new File(CLIPATH.substring(0,CLIPATH.length()-2)).mkdir();
 			} 
 			catch (IOException e) {
 				e.printStackTrace();
@@ -76,7 +82,7 @@ public class TintolmarketServer {
 			while(scanner.hasNextLine()){ //For each user in user.txt file :
 				currentLine = scanner.nextLine();
 				String user = currentLine.split(":")[0];
-				File clientData = new File("users//"+user+".txt");
+				File clientData = new File(CLIPATH+user+".txt");
 				Client newClient = new Client(clientData);
 				this.clients.put(user,newClient);
 				Scanner scCli = new Scanner(clientData);

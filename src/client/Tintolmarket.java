@@ -1,4 +1,9 @@
+package client;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -51,7 +56,32 @@ public class Tintolmarket {
 					String answer = (String)inStream.readObject();
 					if(answer.equals("true")) { //loged in successfully
 						displayOptions();
+						Scanner inputCli = new Scanner(System.in);
+						String cmd = inputCli.nextLine();
 						
+						
+						String op = cmd.split("\\s+")[0];
+						outStream.writeObject(cmd); 						//sending command
+						
+						if(op.equals("a") || op.equals("add")) {
+							String path = cmd.split("\\s+")[2];
+							File img = new File(path);
+							
+							FileInputStream fin = new FileInputStream(img);
+							InputStream input = new BufferedInputStream(fin);
+
+							byte[] buff = new byte[1024];
+							
+							int bytesRead=0;
+							//Envia o conteudo do ficheiro
+							
+							while((bytesRead = input.read(buff, 0, 1024)) >0) {
+								outStream.write(buff, 0, bytesRead);
+							}
+							input.close();
+						}
+						
+						inputCli.close();
 					}
 					else if(answer.equals("false")){
 						System.out.println("Incorrect password! Please try again!");
