@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class TintolmarketServer {
@@ -16,13 +17,13 @@ public class TintolmarketServer {
 
 	private static int PORT;
 	
-	private HashMap<String,Client> clients; 
+	protected ConcurrentHashMap<String,Client> clients; 
 	
-	private HashMap<String,Tintol> wines; 
+	protected ConcurrentHashMap<String,Tintol> wines; 
 	
-	public SellsCatalog sells;
+	protected SellsCatalog sells;
 	
-	private File users;
+	protected File users;
 	
 
 	public static void main(String[] args) {
@@ -38,9 +39,10 @@ public class TintolmarketServer {
 	}
 	
 	public TintolmarketServer() {
-		this.clients = new HashMap<String,Client>();
-		this.wines = new HashMap<String,Tintol>();
+		this.clients = new ConcurrentHashMap<String,Client>();
+		this.wines = new ConcurrentHashMap<String,Tintol>();
 		this.users = new File(SERVERPATH+"users.txt");
+		this.sells = new SellsCatalog();
 		if(users.exists()) {
 			loadWines();
 			loadUsers();
@@ -65,14 +67,24 @@ public class TintolmarketServer {
 	}
 
 	private void loadWines() {
-		File winesDir = new File("wines");
+		File winesDir = new File(SERVERPATH+"wines");
 		if(winesDir.listFiles()!=null) {
 			for (File wineData : winesDir.listFiles()) {
 				String tintolName = wineData.getName().split("\\.")[0];
 				String ext = wineData.getName().split("\\.")[1];
+				File img = null;
 				if ( ! wines.containsKey(tintolName) ){
 					if(ext.equals("txt")){
-						//TODO
+						for (File data : winesDir.listFiles()){
+							if (data.getName().contains(tintolName)) {
+								String extImg = data.getName().split("\\.")[1];
+								if(!extImg.equals("txt")) {
+									img = data;
+								}
+							}
+						}
+						
+						this.wines.put(tintolName, new Tintol(tintolName,img));
 					}
 					
 				}
@@ -100,10 +112,10 @@ public class TintolmarketServer {
 				while(scCli.hasNextLine()) {
 					String s = scCli.nextLine();
 					String tintol = s.split("=")[0];
-					Tintol wine = wines.get(tintol);
+					Tintol wine = this.wines.get(tintol);
 					int quant = Integer.parseInt(s.split("=")[1].split(";")[0]);
 					Double price = Double.parseDouble(s.split("=")[1].split(";")[1]);
-					this.sells.add(new Sell(newClient,wine,quant,price));
+					this.sells.load(new Sell(newClient,wine,quant,price));
 				}
 				scCli.close();
 			}
@@ -126,7 +138,7 @@ public class TintolmarketServer {
 		while(true) {
 			try {
 				Socket inSoc = sSoc.accept();
-				ServerThread newServerThread = new ServerThread(inSoc,clients,sells,wines);
+				ServerThread newServerThread = new ServerThread(inSoc,this);
 				newServerThread.start();
 		    }
 		    catch (IOException e) {
