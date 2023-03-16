@@ -9,7 +9,6 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.HashMap;
 import java.util.Scanner;
 
 public class ServerThread extends Thread {
@@ -25,20 +24,9 @@ public class ServerThread extends Thread {
 		 */
 		private Socket socket = null;
 		
-		/**
-		 * Server´s clients catalog
-		 */
-		private HashMap<String,Client> clients;
 		
-		/**
-		 * Server´s wines catalog
-		 */
-		private HashMap<String, Tintol> wines;
 		
-		/**
-		 * Server´s sells
-		 */
-		public SellsCatalog sells;
+		private TintolmarketServer server;
 		
 		/**
 		 * File that contains user/password information from logged-in users.
@@ -63,14 +51,10 @@ public class ServerThread extends Thread {
 		
 		
 
-		public ServerThread(Socket inSoc,HashMap<String,Client> clients,SellsCatalog sells,
-				HashMap<String,Tintol> wines) {
+		public ServerThread(Socket inSoc,TintolmarketServer s) {
 			this.socket = inSoc;
-			this.sells = sells;
-			this.users = new File(SERVERPATH+"users.txt");
-			this.clients = clients;
-			this.sells = sells;
-			this.wines = wines;
+			this.server=s;
+			this.users = s.users;
 			System.out.println("server:\tServer_thread initiated!!");
 		}
 		
@@ -100,15 +84,20 @@ public class ServerThread extends Thread {
 
 					if(userFound.equals("")) { 					// New User
 						Client newCli = new Client(user,passwd);
-						this.clients.put(user, newCli);
-						FileWriter writer = new FileWriter(users);
-						writer.write(user+":"+passwd+"\n");
-						writer.close();
+						server.clients.put(user, newCli);
+						this.currentCli=newCli;
+						FileWriter writer = new FileWriter(users,true);
+						
+						synchronized(writer) {
+							writer.write(user+":"+passwd+"\n");
+							writer.close();
+						}
 						outStream.writeObject("true");
+						
 						
 					}
 					else {										// Current User
-						this.currentCli = clients.get(user);
+						this.currentCli = server.clients.get(user);
 						if(this.currentCli.validate(passwd)) {				// login bem sucedido
 							outStream.writeObject("true");
 						}
@@ -198,8 +187,29 @@ public class ServerThread extends Thread {
 		}
 
 		private void sell(String cmd) {
-			// TODO 
-			
+			//sell wine1 value quant
+			String[] parts = cmd.split("\\s+");
+			String wineName = parts[1];
+			Double price = Double.parseDouble(parts[2]);
+			int quant = Integer.parseInt(parts[3]);
+			Tintol tintol=null;
+			if((tintol = server.wines.get(wineName))!=null) {
+				Sell sell = new Sell(this.currentCli,tintol,quant,price);
+				server.sells.add(sell);
+				try {
+					outStream.writeObject((String)(quant+" units of "+tintol.getName()+" put up for sale, for "+price+"€ each!"));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				try {
+					outStream.writeObject((String)("Error - Wine not found!\n"));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
 		}
 
 		private void addWine(String cmd) {
@@ -207,7 +217,7 @@ public class ServerThread extends Thread {
 				String[] parts = cmd.split("\\s+");
 				String fileName = parts[2];
 				byte[] buff = new byte[1024];
-				File img = new File(WINESPATH+parts[2]);
+				File img = new File(WINESPATH+parts[1]+"."+parts[2].split("\\.")[1]);
 				img.delete();
 				if(!img.createNewFile()) {
 					System.out.println("server:\tFile: "+ fileName +" -> NOT CREATED");
@@ -234,7 +244,7 @@ public class ServerThread extends Thread {
 					fout.close();
 					
 					Tintol tintol = new Tintol(parts[1], img);
-					this.wines.put(tintol.getName(), tintol);
+					server.wines.put(tintol.getName(), tintol);
 					
 					outStream.writeObject((String)("Tintol - "+tintol.getName()+" added!"));
 					System.out.println("server:\t(Tintol) - "+tintol.getName()+" added!");

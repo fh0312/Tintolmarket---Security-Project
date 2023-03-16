@@ -1,5 +1,8 @@
 package server;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class SellsCatalog {
@@ -29,7 +32,23 @@ public class SellsCatalog {
 	}
 	
 	public void add(Sell s) {
+		File user_data = s.getClient().getDataFile();
+		try {
+			FileWriter fw = new FileWriter(user_data,true);
+			synchronized (fw) {
+				fw.append(s.toString());
+				fw.close();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		this.sells.add(s);
+	}
+
+	public void load(Sell sell) {
+		this.sells.add(sell);
 	}
 	
 

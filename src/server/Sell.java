@@ -14,12 +14,7 @@ public class Sell {
 		this.price = price;
 	}
 
-	/**
-	 * @return the user
-	 */
-	public Client getUser() {
-		return user;
-	}
+
 
 	/**
 	 * @return the wine
@@ -42,13 +37,16 @@ public class Sell {
 		return price;
 	}
 
+	/**
+	 * @return the client
+	 */
 	public Client getClient() {
 		return this.user;
 	}
 
 	@Override
 	public String toString() {
-		return wine + "=" + quant + ";" + price + "\n";
+		return wine.getName() + "=" + quant + ";" + price + "\n";
 	}
 	
 	

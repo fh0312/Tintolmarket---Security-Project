@@ -38,7 +38,7 @@ public class Client {
 	
 	private void writeStats() {
 		try {
-			FileWriter fw = new FileWriter(this.data);
+			FileWriter fw = new FileWriter(this.data,true);
 			StringBuffer sb = new StringBuffer();
 			sb.append("balance="+this.balance);
 			sb.append("\n");
@@ -105,11 +105,14 @@ public class Client {
 
 	/**
 	 * Get client's balance
-	 * 
 	 * @return client's balance
 	 */
 	public double getBalance() {
 		return balance;
+	}
+
+	public File getDataFile() {
+		return this.data;
 	}
 
 

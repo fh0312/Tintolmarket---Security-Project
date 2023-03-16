@@ -18,8 +18,11 @@ public class Tintolmarket {
 	private static final String CLIENTPATH = "client_files//";
 	
 
+	
 	public static void main(String[] args) {
 		new File(CLIENTPATH.substring(0,CLIENTPATH.length()-2)).mkdir();
+		
+		Scanner inputCli = new Scanner(System.in);
 		
 		String serverAddr = "" ;
 		String userID = "";
@@ -35,10 +38,18 @@ public class Tintolmarket {
 			serverAddr = args[0];
 			userID = args[1];
 			
-			Scanner sc = new Scanner(System.in);
 			System.out.print("Please insert password: ");
-			pwd=sc.nextLine();
-			sc.close();
+			pwd=inputCli.nextLine();
+			inputCli.close();
+		}
+		//TODO REMOVEEEEEEEEEEEEEE
+		else if(args.length==1) {
+			serverAddr = args[0];
+			
+			System.out.print("Please insert user: ");
+			userID=inputCli.nextLine();
+			System.out.print("Please insert password: ");
+			pwd=inputCli.nextLine();
 		}
 		
 		else {
@@ -58,7 +69,6 @@ public class Tintolmarket {
 				outStream.writeObject(pwd);
 				try {
 					String answer = (String)inStream.readObject();
-					Scanner inputCli = new Scanner(System.in);
 					
 					if(answer.equals("true")) { //loged in successfully
 						System.out.println("\n\t\tWelcome "+userID+" !");
@@ -89,11 +99,11 @@ public class Tintolmarket {
 									outStream.write(buff, 0, bytesRead);
 								}
 								outStream.flush();
-								
-								String ret = (String) inStream.readObject();
-								System.out.println("\n\t"+ret+"\n\n");
 
 							}
+							
+							String ret = (String) inStream.readObject();
+							System.out.println("\n\t"+ret+"\n\n");
 							
 							
 						}
