@@ -143,7 +143,7 @@ public class ServerThread extends Thread {
 					
 				}
 				catch(SocketException socket) {
-					System.out.println("server:\t "+user+" logged out! - Connection ended");
+					System.out.println("server:\t"+user+" logged out! - Connection ended");
 				}
 				catch (Exception e) {
 					e.printStackTrace();
@@ -165,24 +165,91 @@ public class ServerThread extends Thread {
 			// TODO 
 			
 		}
+		
 
 		private void classify(String cmd) {
-			// TODO 
+			String[] parts = cmd.split("\\s+");
+			Tintol tintol = this.server.wines.get(parts[1]);
+			Double stars = Double.parseDouble(parts[2]);
+			try {
+				if(tintol != null) {
+					tintol.classify(stars);
+					this.outStream.writeObject(("The "+ tintol.getName() + 
+							" has been rated with "+stars+" stars."));
+				}
+				else {
+					this.outStream.writeObject(parts[1]+" not found!");
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
 			
 		}
 
 		private void wallet() {
-			// TODO 
+			try {
+				this.outStream.writeObject(("Your current balance is: "
+						+currentCli.getBalance()+" €"));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			
 		}
-
+		
+		/**
+		 * buy <wine> <seller> <quantity> - compra quantity unidades do vinho wine ao 
+		 * utilizador seller. O número de unidades deve ser removido da quantidade 
+		 * disponível e deve ser transferido o valor correspondente à compra da conta 
+		 * do comprador para o vendedor. Caso o vinho não exista, ou não existam unidades 
+		 * suficientes, ou o comprador não tenha saldo suficiente, deverá ser devolvido 
+		 * e assinalado o erro correspondente.
+		 * 
+		 */
 		private void buy(String cmd) {
-			// TODO 
-			
+			String[] parts = cmd.split("\\s+");
+			Tintol tintol = server.wines.get(parts[1]);
+			Client seller = server.clients.get(parts[2]);
+			int quant = Integer.parseInt(parts[3]);
+			server.sells.buy(tintol,seller,quant,this.currentCli);
+			try {
+				this.outStream.writeObject("U successfully bought: "+quant
+						+" units of"+tintol.getName());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-
+		
+		
 		private void view(String cmd) {
-			// TODO 
+			try {
+				String[] parts = cmd.split("\\s+");
+				String wineName = parts[1];
+				Tintol tintol = server.wines.get(wineName);
+				StringBuilder result=new StringBuilder();
+				result.append(tintol.toString());
+				for(Sell s : server.sells.getSellsByWine(tintol)) {
+					result.append("\t"+s.getClient().getUser()+" has "+s.getQuant()+" units "
+							+ "at "+s.getPrice()+" € per unit.\n");
+				}
+				
+				
+				outStream.writeObject(result.toString());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			catch (NullPointerException eNull){
+				try {
+					outStream.writeObject("Wine: "+ cmd.split("\\s+")[1]+" not found!");
+				}
+				catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				
+			}
+			
+			
 			
 		}
 
@@ -194,13 +261,30 @@ public class ServerThread extends Thread {
 			int quant = Integer.parseInt(parts[3]);
 			Tintol tintol=null;
 			if((tintol = server.wines.get(wineName))!=null) {
-				Sell sell = new Sell(this.currentCli,tintol,quant,price);
-				server.sells.add(sell);
-				try {
-					outStream.writeObject((String)(quant+" units of "+tintol.getName()+" put up for sale, for "+price+"€ each!"));
-				} catch (IOException e) {
-					e.printStackTrace();
+				Sell sell;
+				if((sell = server.sells.getSell(currentCli, tintol))==null) {
+					sell = new Sell(this.currentCli,tintol,quant,price);
+					server.sells.add(sell);
+					try {
+						outStream.writeObject((String)(quant+" units of "+tintol.getName()+" put up for sale, for "+price+"€ each!"));
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
+				else {
+					sell.setQuant(sell.getQuant()+quant);
+					sell.writeStats();
+					try {
+						outStream.writeObject((String)("ERROR - this sale already exists! \n\t"
+								+ "Only sell quantity updated\n\t")+
+								(quant+" units of "+tintol.getName()+" added in previous sale"));
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+				}
+				
 			}
 			else {
 				try {
