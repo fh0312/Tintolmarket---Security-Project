@@ -104,6 +104,9 @@ public class Tintolmarket {
 							
 							String ret = (String) inStream.readObject();
 							System.out.println("\n\t"+ret+"\n\n");
+							System.out.print("\n\tTo continue press ENTER...");
+							inputCli.nextLine();
+							
 							
 							
 						}
