@@ -36,16 +36,28 @@ public class Client {
 		writeStats();
 	}
 	
-	private void writeStats() {
+	protected void writeStats() {
 		try {
-			FileWriter fw = new FileWriter(this.data,true);
-			StringBuffer sb = new StringBuffer();
-			sb.append("balance="+this.balance);
-			sb.append("\n");
-			sb.append("password="+this.pswd);
-			sb.append("\n");
-			fw.append(sb.toString());
-			fw.close();
+			synchronized (this.data) {
+				
+				FileWriter fw = new FileWriter(this.data);
+				StringBuffer sb = new StringBuffer();
+				sb.append("balance="+this.balance+"\n");
+				sb.append("password="+this.pswd+"\n");
+				
+				Scanner sc = new Scanner(this.data);
+				if(sc.hasNextLine()) {
+					sc.nextLine();
+					sc.nextLine();
+				}
+				while(sc.hasNextLine()) {
+					sb.append(sc.nextLine()+"\n");
+				}
+				fw.append(sb.toString());
+				fw.close();
+			}
+			
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -113,6 +125,11 @@ public class Client {
 
 	public File getDataFile() {
 		return this.data;
+	}
+
+	public void setBalance(double d) {
+		this.balance=d;
+		writeStats();
 	}
 
 

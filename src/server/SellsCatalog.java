@@ -4,18 +4,19 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SellsCatalog {
 	
-	public ArrayList<Sell> sells;
+	public ConcurrentHashMap<String,Sell> sells;
 
 	public SellsCatalog() {
-		this.sells = new ArrayList<Sell>();
+		this.sells = new ConcurrentHashMap<String,Sell>();
 	}
 
 	public ArrayList<Sell> getSellsByWine(Tintol wine) {
 		ArrayList<Sell> sellsWine= new ArrayList<Sell>();
-		for (Sell sell : this.sells) {
+		for (Sell sell : this.sells.values()) {
 			if(sell.getWine()==wine)
 				sellsWine.add(sell);
 		}
@@ -24,7 +25,7 @@ public class SellsCatalog {
 	
 	public ArrayList<Sell> getSellsByClient(Client cli) {
 		ArrayList<Sell> sellsCli= new ArrayList<Sell>();
-		for (Sell sell : this.sells) {
+		for (Sell sell : this.sells.values()) {
 			if(sell.getClient()==cli)
 				sellsCli.add(sell);
 		}
@@ -32,23 +33,39 @@ public class SellsCatalog {
 	}
 	
 	public void add(Sell s) {
-		File user_data = s.getClient().getDataFile();
-		try {
-			FileWriter fw = new FileWriter(user_data,true);
-			synchronized (fw) {
-				fw.append(s.toString());
-				fw.close();
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		this.sells.add(s);
+
+		this.sells.put((s.getClient().getUser()+":"+s.getWine().getName()),s);
+		s.writeStats();
 	}
 
 	public void load(Sell sell) {
-		this.sells.add(sell);
+		this.sells.put((sell.getClient().getUser()+":"+sell.getWine().getName()),sell);
+	}
+	
+	public Sell getSell(Client cli,Tintol wine) {
+		Sell sellGet= null;
+		for (String key: this.sells.keySet()) {
+			if(key.equals(cli.getUser()+":"+wine.getName())) {
+				sellGet = this.sells.get(key);
+				break;
+			}
+		}
+		return sellGet;
+	}
+	
+	public void buy(Tintol tintol, Client seller, int quant, Client buyer) {
+		Sell sell = getSell(seller,tintol);
+		if(sell.getQuant()>=quant) {
+			Double amount = quant*(sell.getPrice());
+			if(buyer.getBalance()>= amount) {
+				buyer.setBalance(seller.getBalance()-amount);
+				buyer.writeStats();
+				seller.setBalance(seller.getBalance()+amount);
+				seller.writeStats();
+				sell.setQuant(sell.getQuant()-quant);
+				sell.writeStats();
+			}
+		}	
 	}
 	
 

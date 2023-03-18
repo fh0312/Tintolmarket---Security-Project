@@ -1,5 +1,9 @@
 package server;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
 public class Sell {
 	
 	private Client user; 
@@ -47,6 +51,27 @@ public class Sell {
 	@Override
 	public String toString() {
 		return wine.getName() + "=" + quant + ";" + price + "\n";
+	}
+
+
+
+	public void setQuant(int i) {
+		this.quant=i;
+	}
+
+
+
+	public void writeStats() {
+		File user_data = getClient().getDataFile();
+		try {
+			FileWriter fw = new FileWriter(user_data,true);
+			synchronized (fw) {
+				fw.append(toString());
+				fw.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	
