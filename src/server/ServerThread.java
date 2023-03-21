@@ -160,10 +160,10 @@ public class ServerThread extends Thread {
 		private void read(String cmd) {
 			StringBuilder sb = new StringBuilder();
 			ArrayList<Message> msgs = server.messages.getMessages(this.currentCli);
-			sb.append("\tUnread messages:\n");
+			sb.append("Unread messages:\n");
 			if(msgs!=null) {
 				for(Message m : msgs) {
-					sb.append(m.getSrc().getUser() + " sent: " + m.getMessage()+"\n");
+					sb.append("\t  "+m.getSrc().getUser() + " sent: " + m.getMessage()+"\n");
 				}
 				server.messages.delMessages(this.currentCli);
 				try {
@@ -195,7 +195,7 @@ public class ServerThread extends Thread {
 			}
 			else {
 				Message m = new Message(this.currentCli,dest,parts[2]);
-				server.messages.addMessage(dest, m);
+				server.messages.addMessage(dest, m,false);
 				try {
 					outStream.writeObject("Message sent!");
 				} catch (IOException e) {

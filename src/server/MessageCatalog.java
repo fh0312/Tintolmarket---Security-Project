@@ -36,12 +36,15 @@ public class MessageCatalog {
 		
 	}
 	
-	public void addMessage(Client dest, Message msg) {
+	public void addMessage(Client dest, Message msg,boolean isLoading) {
 		if(this.messages.containsKey(dest.getUser())) {
 			synchronized(this.messages.get(dest.getUser())){
 				this.messages.get(dest.getUser()).add(msg);
 				File msg_data = new File(MSGPATH + dest.getUser() + "_msgs.txt");
-				add_msg(msg_data,dest);
+				if(!isLoading) {
+					add_msg(msg_data,dest);
+				}
+				
 			}
 		} else {
 			ArrayList<Message> new_msg = new ArrayList<Message>();
@@ -52,7 +55,9 @@ public class MessageCatalog {
 				File msg_data = new File(MSGPATH + dest.getUser() + "_msgs.txt");
 					try {
 						msg_data.createNewFile();
-						add_msg(msg_data,dest);
+						if(!isLoading) {
+							add_msg(msg_data,dest);
+						}
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -95,7 +100,7 @@ public class MessageCatalog {
 								String line = sc.nextLine();
 								Message m = new Message(clients.get(line.split("=")[0]),
 										dest, line.split("=")[1]);
-								addMessage(dest,m);
+								addMessage(dest,m,true);
 							}
 							sc.close();
 						} catch (FileNotFoundException e) {
