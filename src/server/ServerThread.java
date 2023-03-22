@@ -138,6 +138,13 @@ public class ServerThread extends Thread {
 						else if(op.equals("r") || op.equals("read")){
 							read(cmd);
 						}
+						else {
+							try {
+								outStream.writeObject("\n\tCommand not accepted");
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
 					}
 					
 					

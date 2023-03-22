@@ -33,10 +33,10 @@ public class Client {
 		}
 		
 		this.sells = new ArrayList<Sell>();
-		writeStats();
+		loadStats();
 	}
 	
-	protected void writeStats() {
+	protected void loadStats() {
 		try {
 			synchronized (this.data) {
 				
@@ -63,6 +63,29 @@ public class Client {
 		}
 		
 	}
+	
+	protected void writeStats() {
+		try {
+			synchronized (this.data) {
+				
+				FileWriter fw = new FileWriter(this.data);
+				StringBuffer sb = new StringBuffer();
+				sb.append("balance="+this.balance+"\n");
+				sb.append("password="+this.pswd+"\n");
+				for(Sell s: this.sells) {
+					sb.append(s.toString());
+				}
+				fw.append(sb.toString());
+				fw.close();
+			}
+			
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
 
 	/**
 	 * Loads and creates a client by his data file and password.
@@ -129,7 +152,7 @@ public class Client {
 
 	public void setBalance(double d) {
 		this.balance=d;
-		writeStats();
+		loadStats();
 	}
 
 

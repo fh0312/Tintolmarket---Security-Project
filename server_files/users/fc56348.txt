@@ -1,2 +1,3 @@
-balance=200.0
+balance=250.0
 password=admin
+wine3=1;10.0
