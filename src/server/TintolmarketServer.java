@@ -1,6 +1,7 @@
 package server;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class TintolmarketServer {
+	
 	private static final String SERVERPATH = "server_files//";
 	private static final String WINESPATH = SERVERPATH +"wines//";
 	private static final String CLIPATH = SERVERPATH +"users//";
@@ -23,6 +25,8 @@ public class TintolmarketServer {
 	protected SellsCatalog sells;
 	
 	protected File users;
+	
+	protected MessageCatalog messages;
 	
 
 	public static void main(String[] args) {
@@ -42,6 +46,7 @@ public class TintolmarketServer {
 		this.wines = new ConcurrentHashMap<String,Tintol>();
 		this.users = new File(SERVERPATH+"users.txt");
 		this.sells = new SellsCatalog();
+		this.messages = new MessageCatalog();
 		if(users.exists()) {
 			loadWines();
 			loadUsers();
@@ -62,7 +67,7 @@ public class TintolmarketServer {
 	}
 	
 	private void loadMessages() {
-		// TODO !!
+		this.messages.load_msgs(clients);
 	}
 
 	private void loadWines() {
@@ -140,7 +145,12 @@ public class TintolmarketServer {
 				ServerThread newServerThread = new ServerThread(inSoc,this);
 				newServerThread.start();
 		    }
-		    catch (IOException e) {
+		    catch (Exception e) {
+		    	try {
+					sSoc.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 		        e.printStackTrace();
 		    }
 		    

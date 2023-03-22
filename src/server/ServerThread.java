@@ -9,14 +9,14 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ServerThread extends Thread {
 		
 		private static final String SERVERPATH = "server_files//";
 		private static final String WINESPATH = SERVERPATH +"wines//";
-		private static final String CLIPATH = SERVERPATH +"users//";
-		private static final String MSGPATH = SERVERPATH +"messages//";
+
 		
 
 		/**
@@ -157,12 +157,52 @@ public class ServerThread extends Thread {
 		}
 
 		private void read(String cmd) {
-			// TODO 
+			StringBuilder sb = new StringBuilder();
+			ArrayList<Message> msgs = server.messages.getMessages(this.currentCli);
+			sb.append("Unread messages:\n");
+			if(msgs!=null) {
+				for(Message m : msgs) {
+					sb.append("\t  "+m.getSrc().getUser() + " sent: " + m.getMessage()+"\n");
+				}
+				server.messages.delMessages(this.currentCli);
+				try {
+					outStream.writeObject(sb.toString());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				try {
+					outStream.writeObject("Your Inbox is Clear!");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
 			
 		}
 
 		private void talk(String cmd) {
-			// TODO 
+			String[] parts = cmd.split("\\s+");
+			Client dest = server.clients.get(parts[1]);
+			if(dest==null) {
+				try {
+					outStream.writeObject("Destination user not found!");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				Message m = new Message(this.currentCli,dest,parts[2]);
+				server.messages.addMessage(dest, m,false);
+				try {
+					outStream.writeObject("Message sent!");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			
 			
 		}
 		
@@ -197,28 +237,61 @@ public class ServerThread extends Thread {
 			
 		}
 		
-		/**
-		 * buy <wine> <seller> <quantity> - compra quantity unidades do vinho wine ao 
-		 * utilizador seller. O número de unidades deve ser removido da quantidade 
-		 * disponível e deve ser transferido o valor correspondente à compra da conta 
-		 * do comprador para o vendedor. Caso o vinho não exista, ou não existam unidades 
-		 * suficientes, ou o comprador não tenha saldo suficiente, deverá ser devolvido 
-		 * e assinalado o erro correspondente.
-		 * 
-		 */
+		
 		private void buy(String cmd) {
 			String[] parts = cmd.split("\\s+");
 			Tintol tintol = server.wines.get(parts[1]);
 			Client seller = server.clients.get(parts[2]);
 			int quant = Integer.parseInt(parts[3]);
-			server.sells.buy(tintol,seller,quant,this.currentCli);
-			try {
-				this.outStream.writeObject("U successfully bought: "+quant
-						+" units of"+tintol.getName());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			
+			if(tintol == null ) {
+				try {
+					this.outStream.writeObject("Wine does not exist!");
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
+			else if (seller==null) {
+				try {
+					this.outStream.writeObject("Seller does not exist!");
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				Sell s = server.sells.getSell(seller, tintol);
+				if(quant>s.getQuant()) {
+					try {
+						this.outStream.writeObject("Not enough units available");
+					}
+					catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				else {
+					if(server.sells.buy(tintol,seller,quant,this.currentCli)) {
+						try {
+							this.outStream.writeObject("U successfully bought: "+quant
+									+" units of"+tintol.getName());
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					else {
+						try {
+							this.outStream.writeObject("Not enough balance available");
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					
+				}
+			}
+			
 		}
 		
 		
@@ -328,10 +401,16 @@ public class ServerThread extends Thread {
 					fout.close();
 					
 					Tintol tintol = new Tintol(parts[1], img);
-					server.wines.put(tintol.getName(), tintol);
+					if(server.wines.get(parts[1])!=null) {
+						outStream.writeObject("Error - Wine already exists!");
+						System.out.println("server:\tError - Wine already exists!");
+					}
+					else {
+						server.wines.put(tintol.getName(), tintol);
+						outStream.writeObject((String)("Tintol - "+tintol.getName()+" added!"));
+						System.out.println("server:\t(Tintol) - "+tintol.getName()+" added!");
+					}
 					
-					outStream.writeObject((String)("Tintol - "+tintol.getName()+" added!"));
-					System.out.println("server:\t(Tintol) - "+tintol.getName()+" added!");
 				}
 
 			} catch (IOException e) {
