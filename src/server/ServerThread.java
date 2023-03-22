@@ -16,7 +16,6 @@ public class ServerThread extends Thread {
 		
 		private static final String SERVERPATH = "server_files//";
 		private static final String WINESPATH = SERVERPATH +"wines//";
-		private static final String CLIPATH = SERVERPATH +"users//";
 
 		
 
@@ -244,14 +243,55 @@ public class ServerThread extends Thread {
 			Tintol tintol = server.wines.get(parts[1]);
 			Client seller = server.clients.get(parts[2]);
 			int quant = Integer.parseInt(parts[3]);
-			server.sells.buy(tintol,seller,quant,this.currentCli);
-			try {
-				this.outStream.writeObject("U successfully bought: "+quant
-						+" units of"+tintol.getName());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			
+			if(tintol == null ) {
+				try {
+					this.outStream.writeObject("Wine does not exist!");
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
+			else if (seller==null) {
+				try {
+					this.outStream.writeObject("Seller does not exist!");
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				Sell s = server.sells.getSell(seller, tintol);
+				if(quant>s.getQuant()) {
+					try {
+						this.outStream.writeObject("Not enough units available");
+					}
+					catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				else {
+					if(server.sells.buy(tintol,seller,quant,this.currentCli)) {
+						try {
+							this.outStream.writeObject("U successfully bought: "+quant
+									+" units of"+tintol.getName());
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					else {
+						try {
+							this.outStream.writeObject("Not enough balance available");
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					
+				}
+			}
+			
 		}
 		
 		
@@ -361,10 +401,16 @@ public class ServerThread extends Thread {
 					fout.close();
 					
 					Tintol tintol = new Tintol(parts[1], img);
-					server.wines.put(tintol.getName(), tintol);
+					if(server.wines.get(parts[1])!=null) {
+						outStream.writeObject("Error - Wine already exists!");
+						System.out.println("server:\tError - Wine already exists!");
+					}
+					else {
+						server.wines.put(tintol.getName(), tintol);
+						outStream.writeObject((String)("Tintol - "+tintol.getName()+" added!"));
+						System.out.println("server:\t(Tintol) - "+tintol.getName()+" added!");
+					}
 					
-					outStream.writeObject((String)("Tintol - "+tintol.getName()+" added!"));
-					System.out.println("server:\t(Tintol) - "+tintol.getName()+" added!");
 				}
 
 			} catch (IOException e) {

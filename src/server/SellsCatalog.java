@@ -50,19 +50,19 @@ public class SellsCatalog {
 		return sellGet;
 	}
 	
-	public void buy(Tintol tintol, Client seller, int quant, Client buyer) {
+	public boolean buy(Tintol tintol, Client seller, int quant, Client buyer) {
 		Sell sell = getSell(seller,tintol);
-		if(sell.getQuant()>=quant) {
 			Double amount = quant*(sell.getPrice());
 			if(buyer.getBalance()>= amount) {
-				buyer.setBalance(seller.getBalance()-amount);
+				buyer.setBalance(buyer.getBalance()-amount);
 				buyer.writeStats();
 				seller.setBalance(seller.getBalance()+amount);
 				seller.writeStats();
 				sell.setQuant(sell.getQuant()-quant);
 				sell.writeStats();
-			}
-		}	
+				return true;
+			}	
+			return false;
 	}
 	
 
