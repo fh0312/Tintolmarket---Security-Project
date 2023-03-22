@@ -55,14 +55,23 @@ public class SellsCatalog {
 			Double amount = quant*(sell.getPrice());
 			if(buyer.getBalance()>= amount) {
 				buyer.setBalance(buyer.getBalance()-amount);
-				buyer.writeStats();
+				buyer.loadStats();
 				seller.setBalance(seller.getBalance()+amount);
-				seller.writeStats();
+				seller.loadStats();
 				sell.setQuant(sell.getQuant()-quant);
 				sell.writeStats();
+				if(sell.getQuant()==0) {
+					this.sells.remove(getKey(sell));
+					seller.writeStats();
+				}
 				return true;
-			}	
+			}
+			
 			return false;
+	}
+
+	private String getKey(Sell s) {
+		return s.getClient().getUser()+":"+s.getWine().getName();
 	}
 	
 

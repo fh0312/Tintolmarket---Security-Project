@@ -1,3 +1,2 @@
 fc56348:admin
-manel admin:admin
 manel:admin
