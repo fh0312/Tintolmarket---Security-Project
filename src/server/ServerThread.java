@@ -12,6 +12,14 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+/**
+ * @author 
+ * Alexandre Müller - FC56343
+ * Diogo Ramos - FC56308
+ * Francisco Henriques - FC56348 
+ *
+ */
+
 public class ServerThread extends Thread {
 		
 		private static final String SERVERPATH = "server_files//";

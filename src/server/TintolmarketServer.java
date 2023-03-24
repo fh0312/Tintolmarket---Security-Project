@@ -1,13 +1,19 @@
 package server;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @author 
+ * Alexandre Müller - FC56343
+ * Diogo Ramos - FC56308
+ * Francisco Henriques - FC56348 
+ *
+ */
 
 public class TintolmarketServer {
 	

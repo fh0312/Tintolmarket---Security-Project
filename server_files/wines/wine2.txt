@@ -1,2 +1,2 @@
-rating=3.75
-numberOfEvaluations=2
+rating=0.0
+numberOfEvaluations=0

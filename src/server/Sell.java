@@ -4,47 +4,75 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+/**
+ * @author 
+ * Alexandre Müller - FC56343
+ * Diogo Ramos - FC56308
+ * Francisco Henriques - FC56348 
+ *
+ */
+
 public class Sell {
 	
-	private Client user; 
+	/**
+	 * seller
+	 */
+	private Client user;
+	
+	/**
+	 * wine to be sold
+	 */
 	private Tintol wine;
+	
+	/**
+	 * sale stock
+	 */
 	private int quant;
+	
+	/**
+	 * price per unit
+	 */
 	private Double price;
 	
-	public Sell(Client user, Tintol wine, int quant, Double price) {
+	/**
+	 * Constructor of class Sell
+	 * @param user  - seller
+	 * @param wine  - wine to be sold
+	 * @param quant - sale stock
+	 * @param price - price per unit
+	 */
+	protected Sell(Client user, Tintol wine, int quant, Double price) {
 		this.user = user;
 		this.wine = wine;
 		this.quant = quant;
 		this.price = price;
 	}
 
-
-
 	/**
 	 * @return the wine
 	 */
-	public Tintol getWine() {
+	protected Tintol getWine() {
 		return wine;
 	}
 
 	/**
 	 * @return the quant
 	 */
-	public int getQuant() {
+	protected int getQuant() {
 		return quant;
 	}
 
 	/**
 	 * @return the price
 	 */
-	public Double getPrice() {
+	protected Double getPrice() {
 		return price;
 	}
 
 	/**
 	 * @return the client
 	 */
-	public Client getClient() {
+	protected Client getClient() {
 		return this.user;
 	}
 
@@ -54,14 +82,19 @@ public class Sell {
 	}
 
 
-
-	public void setQuant(int i) {
+	/**
+	 * Updates the sale stock
+	 * @param i
+	 */
+	protected void setQuant(int i) {
 		this.quant=i;
 	}
 
 
-
-	public void writeStats() {
+	/**
+	 * Writes the sell to the client data file.
+	 */
+	protected void writeStats() {
 		File user_data = getClient().getDataFile();
 		try {
 			FileWriter fw = new FileWriter(user_data,true);

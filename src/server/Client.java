@@ -6,6 +6,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+/**
+ * @author 
+ * Alexandre Müller - FC56343
+ * Diogo Ramos - FC56308
+ * Francisco Henriques - FC56348 
+ *
+ */
+
+/**
+ * Class that represents a client in the tintolMarket system 
+ */
 public class Client {
 	
 	private String user;
@@ -18,8 +29,13 @@ public class Client {
 	private ArrayList<Sell> sells;
 	
 	
-	//new client
-	public Client(String u,String p) {
+	/**
+	 * Client constructor used to regist a new user in the system.
+//	 * To load an old client please use the constructor: Client(File data)
+	 * @param u
+	 * @param p
+	 */
+	protected Client(String u,String p) {
 		this.user = u;
 		this.pswd = p;
 		this.balance = 200.0;
@@ -36,6 +52,11 @@ public class Client {
 		loadStats();
 	}
 	
+	
+	/**
+	 * Load the stats from the existing files in the servers/users directory
+	 * Use it to update the data in memory through the files, while running the server.
+	 */
 	protected void loadStats() {
 		try {
 			synchronized (this.data) {
@@ -63,7 +84,10 @@ public class Client {
 		}
 		
 	}
-	
+	/**
+	 * Writes/updates a client's stats into the file data previous created and declared 
+	 * in the field private File data;
+	 */
 	protected void writeStats() {
 		try {
 			synchronized (this.data) {
@@ -88,13 +112,14 @@ public class Client {
 	
 
 	/**
-	 * Loads and creates a client by his data file and password.
+	 * Loads and creates a client by his data file.
 	 *(This constructor only creates clients that were created somewhere in time by this server)
 	 * 
-	 * @param data - file created to store the client's data if the server goes down
-	 * @param password - client´s password 
+	 * @param data - file created by the system, to store the client's data if the server goes down
+	 * 			   - This file requires at least 2 lines with this structure : 
+	 * 							( balance=xx.x\npassword=xxx\n )
 	 */
-	public Client(File data) {
+	protected Client(File data) {
 		this.user = data.getName().split("\\.")[0];
 		this.data=data;
 		this.sells = new ArrayList<Sell>();
@@ -111,13 +136,14 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
+	
 	/**
 	 * Function that returns true if the given password is the user's password
 	 * 
 	 * @param p - possible password attempt
 	 * @return true if p is the user's password
 	 */
-	public boolean validate(String p) {
+	protected boolean validate(String p) {
 		return p.equals(pswd);
 	}
 	
@@ -125,7 +151,7 @@ public class Client {
 	 * Add a sell to the user's sells array
 	 * @param s -  sell to be added
 	 */
-	public void sellWine(Sell s) {
+	protected void sellWine(Sell s) {
 		this.sells.add(s);
 	}
 	
@@ -134,7 +160,7 @@ public class Client {
 	 * 
 	 * @return Client's username
 	 */
-	public String getUser() {
+	protected String getUser() {
 		return user;
 	}
 
@@ -142,15 +168,23 @@ public class Client {
 	 * Get client's balance
 	 * @return client's balance
 	 */
-	public double getBalance() {
+	protected double getBalance() {
 		return balance;
 	}
-
-	public File getDataFile() {
+	
+	/**
+	 * Get client's data file
+	 * @return client's balance
+	 */
+	protected File getDataFile() {
 		return this.data;
 	}
-
-	public void setBalance(double d) {
+	
+	/**
+	 * Set's the balance to a specific value
+	 * @param d - new balance to be set
+	 */
+	protected void setBalance(double d) {
 		this.balance=d;
 		loadStats();
 	}

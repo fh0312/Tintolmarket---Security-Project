@@ -11,10 +11,16 @@ import java.util.Scanner;
 
 /**
  * @author 
+ * Alexandre Müller - FC56343
+ * Diogo Ramos - FC56308
+ * Francisco Henriques - FC56348 
  *
  */
 public class Tintolmarket {
-	
+	/**
+	 * Path do the client directory 
+	 * Also where to put the image files when adding a wine
+	 */
 	private static final String CLIENTPATH = "client_files//";
 	
 
@@ -40,20 +46,11 @@ public class Tintolmarket {
 			
 			System.out.print("Please insert password: ");
 			pwd=inputCli.nextLine();
-			inputCli.close();
-		}
-		//TODO REMOVEEEEEEEEEEEEEE
-		else if(args.length==1) {
-			serverAddr = args[0];
-			
-			System.out.print("Please insert user: ");
-			userID=inputCli.nextLine();
-			System.out.print("Please insert password: ");
-			pwd=inputCli.nextLine();
 		}
 		
 		else {
-			System.err.println("Modo de Uso: Tintolmarket <serverAddress> <userID> [password]");
+			System.err.println("Modo de Uso: \tTintolmarket <serverAddress> <userID> [password]"
+					+ "\n\t\tTintolmarket <serverAddress> <userID>");
             System.exit(-1);
 		}
 		
@@ -85,7 +82,7 @@ public class Tintolmarket {
 							
 							if(op.equals("a") || op.equals("add")) {
 								String path = cmd.split("\\s+")[2];
-								File img = new File(path);
+								File img = new File(CLIENTPATH+path);
 								
 								FileInputStream fin = new FileInputStream(img);
 								InputStream input = new BufferedInputStream(fin);
@@ -127,7 +124,7 @@ public class Tintolmarket {
 					
 				}
 			}
-
+			
 			cliSocket.close();
 
 		} 
@@ -145,6 +142,9 @@ public class Tintolmarket {
 		
 	}
 
+	/**
+	 * Method that displays to the standart output the possible commands (and their arguments)
+	 */
 	private static void displayOptions() {
 		StringBuffer result = new StringBuffer();
 		result.append("\n\nChoose one of the following commands:\n");

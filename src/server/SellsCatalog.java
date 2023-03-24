@@ -3,6 +3,14 @@ package server;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @author 
+ * Alexandre Müller - FC56343
+ * Diogo Ramos - FC56308
+ * Francisco Henriques - FC56348 
+ *
+ */
+
 public class SellsCatalog {
 	
 	public ConcurrentHashMap<String,Sell> sells;

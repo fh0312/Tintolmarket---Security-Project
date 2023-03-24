@@ -1,2 +1,0 @@
-balance=150.0
-password=admin
