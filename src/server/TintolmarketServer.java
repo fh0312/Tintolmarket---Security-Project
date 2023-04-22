@@ -1,22 +1,35 @@
 package server;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @author 
+ * Alexandre Müller - FC56343
+ * Diogo Ramos - FC56308
+ * Francisco Henriques - FC56348 
+ *
+ */
 
-public class TintolmarketServer {
+public class TintolmarketServer { 
 	
+	
+	//ANETS DE USAR CADA UM DESTES FICHEIROS VERIFICAR A INTEGRIDADE dos mesmos
 	private static final String SERVERPATH = "server_files//";
 	private static final String WINESPATH = SERVERPATH +"wines//";
 	private static final String CLIPATH = SERVERPATH +"users//";
 	private static final String MSGPATH = SERVERPATH +"messages//";
 
 	private static int PORT;
+	
+	private String pwdCifra; // cifra para cifrar o ficheiro de users - PBE - AES 128bits
+	
+	
+	
 	
 	protected ConcurrentHashMap<String,Client> clients; 
 	
@@ -30,11 +43,19 @@ public class TintolmarketServer {
 	
 
 	public static void main(String[] args) {
-        if (args.length != 1) {
-            System.err.println("Modo de Uso: TintolmarketServer <port>");
+		if(args.length==0) {
+			PORT = 12345;
+			//TODO - remover !!
+		}
+		else if (args.length != 1) {
+            System.err.println("Modo de Uso: TintolmarketServer <port>"
+            		+ "<password-cifra> <keystore> <password-keystore>");
             System.exit(-1);
         }
-        PORT = (int) Integer.parseInt(args[0]);
+		else {
+			PORT = (int) Integer.parseInt(args[0]);
+		}
+        
         System.out.println("server:\tTintolmarketServer initiated in port: "+PORT);
 		TintolmarketServer server = new TintolmarketServer();
 		server.startServer();

@@ -11,10 +11,16 @@ import java.util.Scanner;
 
 /**
  * @author 
+ * Alexandre Müller - FC56343
+ * Diogo Ramos - FC56308
+ * Francisco Henriques - FC56348 
  *
  */
 public class Tintolmarket {
-	
+	/**
+	 * Path do the client directory 
+	 * Also where to put the image files when adding a wine
+	 */
 	private static final String CLIENTPATH = "client_files//";
 	
 
@@ -25,42 +31,46 @@ public class Tintolmarket {
 		Scanner inputCli = new Scanner(System.in);
 		
 		String serverAddr = "" ;
-		String userID = "";
-		String pwd = "";
+		int port = 12345;
+		String truststore = "";
+		String keystore = "";
+		String pswdKeystore = "";
+		String userID="";
 		
-		if(args.length==3) {
-			userID = args[1];
-			serverAddr = args[0];
-			pwd = args[2];
+		
+		if(args.length==5) {
+			if(args[0].contains(":")) {
+				serverAddr = args[0].split(":")[0];
+				port = Integer.parseInt(args[0].split(":")[1]);
+			}
+			else {
+				serverAddr = args[0];
+			}
+			truststore = args[1];
+			keystore = args[2];
+			pswdKeystore = args[3];
+			userID = args[4];
 		}
 		
-		else if(args.length==2) {
-			serverAddr = args[0];
-			userID = args[1];
-			
-			System.out.print("Please insert password: ");
-			pwd=inputCli.nextLine();
-			inputCli.close();
-		}
-		//TODO REMOVEEEEEEEEEEEEEE
-		else if(args.length==1) {
-			serverAddr = args[0];
-			
-			System.out.print("Please insert user: ");
-			userID=inputCli.nextLine();
-			System.out.print("Please insert password: ");
-			pwd=inputCli.nextLine();
+		else if(args.length==0) {
+			//Caso teste
+			serverAddr = "127.0.0.1" ;
+			port = 12345;
+			truststore = "";//TODO
+			keystore = "";//TODO
+			pswdKeystore = "";//TODO
+			userID="test";//TODO
 		}
 		
 		else {
-			System.err.println("Modo de Uso: Tintolmarket <serverAddress> <userID> [password]");
+			System.err.println("Modo de Uso: \tTintolmarket <serverAddress> <truststore> <keystore> "
+					+ "<password-keystore> <userID>");
             System.exit(-1);
 		}
 		
 		Socket cliSocket = null;
 		try {
-			cliSocket = new Socket(serverAddr.split(":")[0],
-					Integer.parseInt(serverAddr.split(":")[1]));
+			cliSocket = new Socket(serverAddr,port);
 			ObjectInputStream inStream = new ObjectInputStream(cliSocket.getInputStream());
 			ObjectOutputStream outStream = new ObjectOutputStream(cliSocket.getOutputStream());
 			
@@ -85,7 +95,7 @@ public class Tintolmarket {
 							
 							if(op.equals("a") || op.equals("add")) {
 								String path = cmd.split("\\s+")[2];
-								File img = new File(path);
+								File img = new File(CLIENTPATH+path);
 								
 								FileInputStream fin = new FileInputStream(img);
 								InputStream input = new BufferedInputStream(fin);
@@ -127,7 +137,7 @@ public class Tintolmarket {
 					
 				}
 			}
-
+			
 			cliSocket.close();
 
 		} 
@@ -145,6 +155,9 @@ public class Tintolmarket {
 		
 	}
 
+	/**
+	 * Method that displays to the standart output the possible commands (and their arguments)
+	 */
 	private static void displayOptions() {
 		StringBuffer result = new StringBuffer();
 		result.append("\n\nChoose one of the following commands:\n");

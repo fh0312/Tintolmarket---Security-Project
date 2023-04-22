@@ -1,2 +1,0 @@
-rating=3.75
-numberOfEvaluations=2
