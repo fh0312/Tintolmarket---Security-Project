@@ -2,10 +2,17 @@ package server;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
 
 /**
  * @author 
@@ -26,9 +33,15 @@ public class TintolmarketServer {
 
 	private static int PORT;
 	
-	private String pwdCifra; // cifra para cifrar o ficheiro de users - PBE - AES 128bits
-	
-	
+	private static String KEYSTORE_PATH = "server.keystore";
+    private static String TRUSTSTORE_PATH = "server.truststore";
+    private static String KEYSTORE_PASSWORD = "keystore_password";
+    private static String TRUSTSTORE_PASSWORD = "truststore_password";
+    private static String CIPHER_PASSWORD = "pbe_password"; // cifra para cifrar o ficheiro de users - PBE - AES 128bits
+    
+    private static final String ALGORITHM = "AES";
+    private static final int KEY_SIZE = 128;
+    private static final String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
 	
 	
 	protected ConcurrentHashMap<String,Client> clients; 
@@ -45,6 +58,10 @@ public class TintolmarketServer {
 	public static void main(String[] args) {
 		if(args.length==0) {
 			PORT = 12345;
+			KEYSTORE_PATH = "keystore.server";
+			KEYSTORE_PASSWORD = "adminadmin";
+			CIPHER_PASSWORD = "adminadmin";
+			
 			//TODO - remover !!
 		}
 		else if (args.length != 1) {
@@ -54,11 +71,20 @@ public class TintolmarketServer {
         }
 		else {
 			PORT = (int) Integer.parseInt(args[0]);
+			CIPHER_PASSWORD = args[1];
+			KEYSTORE_PATH = args[2];
+			KEYSTORE_PASSWORD = args[3];
 		}
         
         System.out.println("server:\tTintolmarketServer initiated in port: "+PORT);
 		TintolmarketServer server = new TintolmarketServer();
-		server.startServer();
+		try {
+			server.startServer();
+		} catch (UnrecoverableKeyException | KeyManagementException | NoSuchAlgorithmException | CertificateException
+				| KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         
 	}
 	
@@ -150,10 +176,21 @@ public class TintolmarketServer {
 		}
 	}
 
-	public void startServer (){
-		ServerSocket sSoc = null;
+	public void startServer () throws NoSuchAlgorithmException, CertificateException, KeyStoreException, UnrecoverableKeyException, KeyManagementException{
+		SSLServerSocket sSoc = null;
 		try {
-			sSoc = new ServerSocket(PORT);
+
+			System.setProperty("javax.net.ssl.keyStore", KEYSTORE_PATH);
+			System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PASSWORD);
+			
+
+			ServerSocketFactory ssf = SSLServerSocketFactory.getDefault( );
+			sSoc = (SSLServerSocket) ssf.createServerSocket(PORT);
+
+            // Wait for client connection
+            System.out.println("Waiting for client connection...");
+
+			
 			
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
@@ -162,9 +199,8 @@ public class TintolmarketServer {
 		}
 		while(true) {
 			try {
-				Socket inSoc = sSoc.accept();
-				ServerThread newServerThread = new ServerThread(inSoc,this);
-				newServerThread.start();
+				new ServerThread(sSoc.accept(),this).start( ); 
+				System.out.println("New client connected");
 		    }
 		    catch (Exception e) {
 		    	try {

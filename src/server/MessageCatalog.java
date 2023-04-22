@@ -116,7 +116,7 @@ public class MessageCatalog {
 	}
 	
 	/**
-	 * Writes the last message that a client has, to the correspondente data file.
+	 * Writes the last message that a client has, to the corresponding data file.
 	 * @param msg_data - file to be written.
 	 * @param dest - Client to get the message from.
 	 */

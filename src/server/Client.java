@@ -20,7 +20,7 @@ import java.util.Scanner;
 public class Client {
 	
 	private String user;
-	private String pswd;
+	private String pubKey;
 	private Double balance;
 	private File data ;
 	private static final String SERVERPATH = "server_files//";
@@ -37,7 +37,7 @@ public class Client {
 	 */
 	protected Client(String u,String p) {
 		this.user = u;
-		this.pswd = p;
+		this.pubKey = p;
 		this.balance = 200.0;
 		
 		this.data = new File (CLIPATH+this.user+".txt");
@@ -64,7 +64,7 @@ public class Client {
 				FileWriter fw = new FileWriter(this.data);
 				StringBuffer sb = new StringBuffer();
 				sb.append("balance="+this.balance+"\n");
-				sb.append("password="+this.pswd+"\n");
+				sb.append("password="+this.pubKey+"\n");
 				
 				Scanner sc = new Scanner(this.data);
 				if(sc.hasNextLine()) {
@@ -95,7 +95,7 @@ public class Client {
 				FileWriter fw = new FileWriter(this.data);
 				StringBuffer sb = new StringBuffer();
 				sb.append("balance="+this.balance+"\n");
-				sb.append("password="+this.pswd+"\n");
+				sb.append("password="+this.pubKey+"\n");
 				for(Sell s: this.sells) {
 					sb.append(s.toString());
 				}
@@ -129,7 +129,7 @@ public class Client {
 		try {
 			sc = new Scanner(data);
 			this.balance = Double.parseDouble((sc.nextLine().split("="))[1]);
-			this.pswd = sc.nextLine().split("=")[1];
+			this.pubKey = sc.nextLine().split("=")[1];
 			sc.close();
 		}
 		catch (FileNotFoundException e) {
@@ -144,7 +144,7 @@ public class Client {
 	 * @return true if p is the user's password
 	 */
 	protected boolean validate(String p) {
-		return p.equals(pswd);
+		return p.equals(pubKey);
 	}
 	
 	/**
@@ -187,6 +187,12 @@ public class Client {
 	protected void setBalance(double d) {
 		this.balance=d;
 		loadStats();
+	}
+
+
+	public String getPubKey() {
+		return this.pubKey;
+		
 	}
 
 
