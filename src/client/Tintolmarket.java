@@ -96,14 +96,14 @@ public class Tintolmarket {
 			e3.printStackTrace();
 		}
 		try {
-			ks.load(fis, "senhaDoKeystore".toCharArray());
+			ks.load(fis, "adminadmin".toCharArray());
 		} catch (NoSuchAlgorithmException | CertificateException | IOException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
 		}
 
 		try {
-			privateKey = (PrivateKey) ks.getKey("nomeDoAlias", "senhaDaChave".toCharArray());
+			privateKey = (PrivateKey) ks.getKey("myServer", "adminadmin".toCharArray());
 		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
