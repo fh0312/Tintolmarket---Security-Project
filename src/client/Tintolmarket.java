@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -18,6 +19,8 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.util.Scanner;
 
@@ -103,7 +106,7 @@ public class Tintolmarket {
 		}
 
 		try {
-			privateKey = (PrivateKey) ks.getKey("myServer", "adminadmin".toCharArray());
+			privateKey = (PrivateKey) ks.getKey(ks.aliases().nextElement(), pswdKeystore.toCharArray());
 		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
@@ -130,13 +133,49 @@ public class Tintolmarket {
 			if (cliSocket.isConnected()) {
 				outStream.println(userID);
 				System.out.println("User enviado");
-				String answer = (String) inStream.readLine();
-				System.out.println("answer");
-				System.out.flush();
 				
-				String nonce = answer.split(":")[0];
+				String nonceStrReceived = (String) inStream.readLine();
+				String nonceStr = nonceStrReceived.split(":")[0];
+				byte[] nonce = nonceStr.getBytes(StandardCharsets.ISO_8859_1);
 				
-				if(answer.contains(":")) { // Nao esta registado
+				
+				
+				if(nonceStrReceived.contains(":")) { // Nao esta registado
+					
+					StringBuilder ret = new StringBuilder();
+					String parte1 = new String(nonce,StandardCharsets.ISO_8859_1)+":";
+					
+					byte[] nonceSigned = signNonce(privateKey,new String(nonce,StandardCharsets.ISO_8859_1));
+					String parte2 = new String(nonceSigned,StandardCharsets.ISO_8859_1);
+					
+					int sizee = nonceSigned.length;
+					
+					System.out.println("Resposta ao server com (nonce:signNonce) -> " + parte1+parte2);
+					ret.append(parte1);
+					ret.append(parte2);
+					
+					System.out.println("a: "+ret.toString());
+					outStream.println(ret.toString());
+					
+			        try {
+						ks.load(new FileInputStream(keystorePath), pswdKeystore.toCharArray());
+					} catch (NoSuchAlgorithmException | CertificateException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			        
+			        Certificate cert= createCert(ks);
+			        File certFile = null;
+			        try {
+						certFile = getCertFile(cert,ks.aliases().nextElement());
+					} catch (KeyStoreException e) {
+						e.printStackTrace();
+					}
+					
+					sendFile(cliSocket,inStream, certFile,outStream);
+					
+
+					
 					//enviar  assinatura deste gerada com a sua
 					//chave privada, e o certificado com a chave pública correspondente.
 					
@@ -144,33 +183,16 @@ public class Tintolmarket {
 				}
 				else { //esta registado
 					
-					Signature signature = Signature.getInstance("SHA256withRSA");
-					try {
-						signature.initSign(privateKey);
-					} catch (InvalidKeyException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					byte[] nonceBytes = nonce.getBytes(StandardCharsets.UTF_8);
-					try {
-						signature.update(nonceBytes);
-					} catch (SignatureException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					byte[] nonceSigned = null;
-					try {
-						nonceSigned = signature.sign();
-					} catch (SignatureException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					
+					byte[] nonceSigned = signNonce(privateKey,new String(nonce,StandardCharsets.ISO_8859_1));;
 					
 					outStream.println(nonceSigned);
 					
 				}
 				
-				System.out.println("nonce is: "+nonce);
+				String answer = ""; //indicacao que foi aprovado o login //TODO
+				
+
 				
 				if (answer.equals("true")) { // loged in successfully
 					System.out.println("\n\t\tWelcome " + userID + " !");
@@ -237,6 +259,98 @@ public class Tintolmarket {
 			}
 		}
 
+	}
+
+	private static void sendFile(SSLSocket cliSocket,BufferedReader inStream, File certFile,PrintWriter outStream) {
+		
+		 try (FileInputStream fin = new FileInputStream(certFile)) {
+		        
+		        outStream.println(certFile.length()+"");
+		        System.out.println("size do ficheiro enviado: "+certFile.length());
+		        
+		        System.out.println("enviado e recebido este nº de bytes:"+inStream.readLine());
+		        
+		        byte[] buffer = new byte[1024];
+		        
+		        int bytesRead;
+		        
+		        while ((bytesRead = fin.read(buffer)) != -1) {
+		        	String str = new String(buffer,StandardCharsets.ISO_8859_1);
+		            outStream.println(str);
+		        }
+		        
+		        fin.close();
+		        
+		    } catch (IOException e) {
+		        e.printStackTrace();
+		    }
+	}
+
+	private static File getCertFile(Certificate cert,String elias) throws IOException {
+		
+		File certFile = new File(CLIENTPATH+elias+".crt");
+		certFile.createNewFile();
+		FileOutputStream fos = new FileOutputStream(certFile);
+		try {
+			try {
+				fos.write(cert.getEncoded());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (CertificateEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    fos.close();
+		return certFile;
+	}
+
+	private static Certificate createCert(KeyStore ks) {
+		String elias=null;
+		try {
+			elias = ks.aliases().nextElement();
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		}
+        Certificate cert=null;
+		try {
+			cert = ks.getCertificate(elias);
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		}
+		return cert;
+	}
+
+	private static byte[] signNonce(PrivateKey privateKey, String nonce) {
+		Signature signature = null;
+		try {
+			signature = Signature.getInstance("SHA256withRSA");
+		} catch (NoSuchAlgorithmException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		try {
+			signature.initSign(privateKey);
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		byte[] nonceBytes = nonce.getBytes(StandardCharsets.ISO_8859_1);
+		try {
+			signature.update(nonceBytes);
+		} catch (SignatureException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		byte[] nonceSigned = null;
+		try {
+			nonceSigned = signature.sign();
+		} catch (SignatureException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return nonceSigned;
 	}
 
 	/**

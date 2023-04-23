@@ -3,21 +3,27 @@ package server;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
 
@@ -69,17 +75,12 @@ public class ServerThread extends Thread {
 	public void run() {
 		try {
 
-			// Create input/output streams
-			BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
-
-			this.outStream = output;
-			this.inStream = input;
+			this.outStream = new PrintWriter(socket.getOutputStream(), true);
+			this.inStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 			String user = null;
 			PublicKey pubKey = null;
-			
-			
+
 			try {
 				user = (String) inStream.readLine();
 
@@ -96,64 +97,101 @@ public class ServerThread extends Thread {
 					}
 				}
 				scanner.close();
-				
-				//ja temos o userID
-				
-				//nonce:
+
+				// ja temos o userID
+
+				// nonce:
 				byte[] nonce = new byte[8];
 				new SecureRandom().nextBytes(nonce);
 				
-				if (userFound.equals("")) { 											// New User
+				
+				if (userFound.equals("")) { // New User
 					// Send the nonce to the client
-					outStream.println(nonce+":"+true);
-					outStream.flush();
+					String nonceStr = new String(nonce,StandardCharsets.ISO_8859_1);
+					byte[] nonce2 = nonceStr.getBytes(StandardCharsets.ISO_8859_1);
+					outStream.println(nonceStr+":"+"true");
 					
-					//TODO - Parte do novo cliente 
+					char[] buff = new char[265];
+					int a = inStream.read(buff);
+					String answer = buff.toString();
+					System.out.println("answer: "+answer);
 					
-					
-//					Client newCli = new Client(user, passwd);
-//					server.clients.put(user, newCli);
-//					this.currentCli = newCli;
-//					FileWriter writer = new FileWriter(users, true);
+					inStream.readLine();
 
-//					synchronized (writer) {
-//						writer.write(user + ":" + passwd + "\n");
-//						writer.close();
-//					}
-//					outStream.println("true");
+					
+					
+					byte[] nonceReceived = answer.split(":")[0].getBytes(StandardCharsets.ISO_8859_1);
+					
+					
+					if (Arrays.equals(nonce,nonceReceived)) {
 
-				} else { 																// Current User
-					
-					outStream.println(nonce);
-					outStream.flush();
-					
-					String signedNonce = inStream.readLine();
-					
-					this.currentCli = server.clients.get(user);
-					
-					if(this.currentCli!=null) {
-						pubKey = loadPublicKey(this.currentCli.getPubKey());
+						// ir buscar certificado
+
+						File certFile = getFile(SERVERPATH + user + ".crt");
+
+						CertificateFactory cf = CertificateFactory.getInstance("X.509");
+						FileInputStream fis = new FileInputStream(certFile.getPath());
+						Certificate cert = cf.generateCertificate(fis);
+
+						// Get the public key from the certificate
+						pubKey = cert.getPublicKey();
+
 						Signature ver = Signature.getInstance("SHA256withRSA");
 						ver.initVerify(pubKey);
 						ver.update(nonce);
 						
-						if(!ver.verify(signedNonce.getBytes())) { // NON AUTHORIZED
+						System.out.println("signedNonce :"+answer.split(":")[1]);
+						
+						if (!ver.verify(answer.split(":")[1].getBytes())) { // NON AUTHORIZED
+							
+							System.out.println("server:\tNon Authorized Login!");
+							outStream.println("Non Authorized Login! Please Try Again!");
+							System.exit(-1);
+						} else {
+							
+							Client newCli = new Client(user, certFile.getPath());
+							server.clients.put(user, newCli);
+							this.currentCli = newCli;
+							FileWriter writer = new FileWriter(users, true);
+
+							synchronized (writer) {
+								writer.write(user + ":" + certFile.getPath() + "\n");
+								writer.close();
+							}
+							outStream.println("true");
+						}
+					}
+
+				} else { // Current User
+					outStream.println(nonce);
+					outStream.flush();
+
+					String signedNonce = inStream.readLine();
+
+					this.currentCli = server.clients.get(user);
+
+					if (this.currentCli != null) {
+						pubKey = loadPublicKey(this.currentCli.getPubKey());
+						Signature ver = Signature.getInstance("SHA256withRSA");
+						ver.initVerify(pubKey);
+						ver.update(nonce);
+
+						if (!ver.verify(signedNonce.getBytes())) { // NON AUTHORIZED
 							System.out.println("server:\tNon Authorized Login!");
 							outStream.println("Non Authorized Login! Please Try Again!");
 							System.exit(-1);
 						}
-					}
-					else {
-						System.out.println("server:\tUser: |"+user+"| not found !");
+					} else {
+						System.out.println("server:\tUser: |" + user + "| not found !");
 						outStream.println("User not found !");
 						System.exit(-1);
 					}
-					
 
 				}
-				String cmd = "";
 
-				while ((cmd = (String) inStream.readLine()) != "-1") {
+				String cmd = "";
+				System.exit(-1);
+				while (!(cmd = (String) inStream.readLine()).equals("-1")) {
 
 					System.out.println("server:\tCommand received: " + cmd);
 					String op = cmd.split("\\s+")[0];
@@ -188,6 +226,38 @@ public class ServerThread extends Thread {
 			System.out.println("Error");
 			e.printStackTrace();
 		}
+	}
+
+	private File getFile(String filepath) throws IOException {
+		
+		File file = new File(filepath);
+	    
+	    try (FileOutputStream fout = new FileOutputStream(file)) {
+	    	
+	    	Long size = Long.parseLong(inStream.readLine());
+	    	
+	    	
+	    	outStream.println(size);
+	        System.out.println("size do ficheiro recebido: "+size);
+	        
+	        byte[] buffer = new byte[1024];
+	        int bytesRead;
+	        
+	        while (size > 0) {
+	        	String str = inStream.readLine();
+	        	byte[] buff = str.getBytes();
+	        	bytesRead=buff.length;
+	            fout.write(buff, 0, bytesRead);
+	            size -= bytesRead;
+	        }
+	        
+	        fout.close();
+	        
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
+	    
+	    return file;
 	}
 
 	private void read(String cmd) {
@@ -370,12 +440,12 @@ public class ServerThread extends Thread {
 		}
 
 	}
-	
+
 	public PublicKey loadPublicKey(String publicKeyString) throws NoSuchAlgorithmException, InvalidKeySpecException {
-	    byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyString);
-	    X509EncodedKeySpec spec = new X509EncodedKeySpec(publicKeyBytes);
-	    KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-	    PublicKey publicKey = keyFactory.generatePublic(spec);
-	    return publicKey;
+		byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyString);
+		X509EncodedKeySpec spec = new X509EncodedKeySpec(publicKeyBytes);
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		PublicKey publicKey = keyFactory.generatePublic(spec);
+		return publicKey;
 	}
 }
