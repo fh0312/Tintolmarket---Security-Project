@@ -1,13 +1,13 @@
 package server;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -63,7 +63,7 @@ public class ServerThread extends Thread {
 	/**
 	 * Channel to receive messages from the client
 	 */
-	private BufferedReader inStream;
+	private ObjectInputStream inStream;
 
 	public ServerThread(Socket inSoc, TintolmarketServer s) {
 		this.socket = inSoc;
@@ -76,13 +76,13 @@ public class ServerThread extends Thread {
 		try {
 
 			this.outStream = new PrintWriter(socket.getOutputStream(), true);
-			this.inStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			this.inStream = new ObjectInputStream(socket.getInputStream());
 
 			String user = null;
 			PublicKey pubKey = null;
 
 			try {
-				user = (String) inStream.readLine();
+				user = (String) inStream.readObject();
 
 				String userFound = "";
 
@@ -111,12 +111,14 @@ public class ServerThread extends Thread {
 					byte[] nonce2 = nonceStr.getBytes(StandardCharsets.ISO_8859_1);
 					outStream.println(nonceStr+":"+"true");
 					
-					char[] buff = new char[265];
-					int a = inStream.read(buff);
-					String answer = buff.toString();
+					//byte[] buff = new byte[265];
+					//buff = (byte[]) inStream.readObject();
+					
+					//String answer = new String(buff, StandardCharsets.ISO_8859_1);
+					String answer = (String) inStream.readObject();
 					System.out.println("answer: "+answer);
 					
-					inStream.readLine();
+					
 
 					
 					
@@ -166,7 +168,7 @@ public class ServerThread extends Thread {
 					outStream.println(nonce);
 					outStream.flush();
 
-					String signedNonce = inStream.readLine();
+					String signedNonce = (String) inStream.readObject();
 
 					this.currentCli = server.clients.get(user);
 
@@ -190,8 +192,8 @@ public class ServerThread extends Thread {
 				}
 
 				String cmd = "";
-				System.exit(-1);
-				while (!(cmd = (String) inStream.readLine()).equals("-1")) {
+				
+				while (!(cmd = (String) inStream.readObject()).equals("-1")) {
 
 					System.out.println("server:\tCommand received: " + cmd);
 					String op = cmd.split("\\s+")[0];
@@ -231,32 +233,28 @@ public class ServerThread extends Thread {
 	private File getFile(String filepath) throws IOException {
 		
 		File file = new File(filepath);
-	    
-	    try (FileOutputStream fout = new FileOutputStream(file)) {
+		file.createNewFile();
+		FileOutputStream fout = new FileOutputStream(file,true);
+        OutputStream output = new BufferedOutputStream(fout);
+	   
 	    	
-	    	Long size = Long.parseLong(inStream.readLine());
+	    	int size = 0;
+			try {
+				size = Integer.parseInt((String) (inStream.readObject()));
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			 int bytesRead =0;
+			 byte[] buff = new byte[1024];
+			 int alreadyRead =0;
+             while(alreadyRead + (bytesRead = inStream.read(buff, 0, 1024)) <size) {
+                 output.write(buff, 0, bytesRead);
+                 alreadyRead += bytesRead;
+             }
+             output.close();
+             fout.close();
 	    	
-	    	
-	    	outStream.println(size);
-	        System.out.println("size do ficheiro recebido: "+size);
-	        
-	        byte[] buffer = new byte[1024];
-	        int bytesRead;
-	        
-	        while (size > 0) {
-	        	String str = inStream.readLine();
-	        	byte[] buff = str.getBytes();
-	        	bytesRead=buff.length;
-	            fout.write(buff, 0, bytesRead);
-	            size -= bytesRead;
-	        }
-	        
-	        fout.close();
-	        
-	    } catch (IOException e) {
-	        e.printStackTrace();
-	    }
-	    
 	    return file;
 	}
 
@@ -401,6 +399,7 @@ public class ServerThread extends Thread {
 		File img = new File(WINESPATH + parts[1] + "." + parts[2].split("\\.")[1]);
 		img.delete();
 		try {
+			
 			if (!img.createNewFile()) {
 				System.out.println("server:\tFile: " + fileName + " -> NOT CREATED");
 			} else {
@@ -409,11 +408,22 @@ public class ServerThread extends Thread {
 
 				long size = 0;
 
-				size = Long.parseLong(inStream.readLine());
+				try {
+					size = (long) (inStream.readObject());
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 
 				int alreadyRead = 0;
 				while (alreadyRead < size) {
-					String line = inStream.readLine();
+					String line = null;
+					try {
+						line = (String) inStream.readObject();
+					} catch (ClassNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					if (line == null) {
 						break;
 					}
