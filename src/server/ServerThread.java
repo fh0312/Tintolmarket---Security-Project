@@ -190,7 +190,6 @@ public class ServerThread extends Thread {
 				}
 
 				String cmd = "";
-				System.exit(-1);
 				while (!(cmd = (String) inStream.readLine()).equals("-1")) {
 
 					System.out.println("server:\tCommand received: " + cmd);
