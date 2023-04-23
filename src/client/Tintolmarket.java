@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -49,7 +50,7 @@ public class Tintolmarket {
 		int port = 12345;
 		String truststorePath = "";
 		String keystorePath = "";
-		String pswdKeystore = "";
+		String pswdKeystore = "";		
 		String userID = "";
 
 		if (args.length == 5) {
@@ -128,10 +129,10 @@ public class Tintolmarket {
 
 			// cliSocket = new Socket(serverAddr,port);
 			BufferedReader inStream = new BufferedReader(new InputStreamReader(cliSocket.getInputStream()));
-			PrintWriter outStream = new PrintWriter(cliSocket.getOutputStream(), true);
-
+			//PrintWriter outStream = new PrintWriter(cliSocket.getOutputStream(), true);
+			ObjectOutputStream outStream = new ObjectOutputStream(cliSocket.getOutputStream());
 			if (cliSocket.isConnected()) {
-				outStream.println(userID);
+				outStream.writeObject(userID);
 				System.out.println("User enviado");
 				
 				String nonceStrReceived = (String) inStream.readLine();
@@ -155,7 +156,7 @@ public class Tintolmarket {
 					ret.append(parte2);
 					
 					System.out.println("a: "+ret.toString());
-					outStream.println(ret.toString());
+					outStream.writeObject(ret.toString());
 					
 			        try {
 						ks.load(new FileInputStream(keystorePath), pswdKeystore.toCharArray());
@@ -186,7 +187,7 @@ public class Tintolmarket {
 					
 					byte[] nonceSigned = signNonce(privateKey,new String(nonce,StandardCharsets.ISO_8859_1));;
 					
-					outStream.println(nonceSigned);
+					outStream.writeObject(nonceSigned);
 					
 				}
 				
@@ -203,7 +204,7 @@ public class Tintolmarket {
 						String cmd = inputCli.nextLine();
 
 						String op = cmd.split("\\s+")[0];
-						outStream.println(cmd); // sending command
+						outStream.writeObject(cmd); // sending command
 
 						if (op.equals("a") || op.equals("add")) {
 							String path = cmd.split("\\s+")[2];
@@ -213,7 +214,7 @@ public class Tintolmarket {
 							InputStream input = new BufferedInputStream(fin);
 
 							
-							outStream.println((int)img.length());
+							outStream.writeObject((int)img.length());
 							
 							
 							byte[] buffer = new byte[1024];
@@ -221,7 +222,7 @@ public class Tintolmarket {
 
 							// Send the file in 1024 byte chunks
 							while ((bytesRead = input.read(buffer)) != -1) {
-							    outStream.println(new String(buffer, 0, bytesRead));
+							    outStream.writeObject(new String(buffer, 0, bytesRead));
 							}
 
 							// Flush the output stream
@@ -254,18 +255,18 @@ public class Tintolmarket {
 			try {
 				cliSocket.close();
 			} catch (Exception e1) {
-				// TODO Auto-generated catch block
+				// TODO Auto-generated catch block				
 				e1.printStackTrace();
 			}
 		}
 
 	}
 
-	private static void sendFile(SSLSocket cliSocket,BufferedReader inStream, File certFile,PrintWriter outStream) {
+	private static void sendFile(SSLSocket cliSocket,BufferedReader inStream, File certFile,ObjectOutputStream outStream) {
 		
 		 try (FileInputStream fin = new FileInputStream(certFile)) {
 		        
-		        outStream.println(certFile.length()+"");
+		        outStream.writeObject(certFile.length()+"");
 		        System.out.println("size do ficheiro enviado: "+certFile.length());
 		        
 		        System.out.println("enviado e recebido este nº de bytes:"+inStream.readLine());
@@ -276,7 +277,7 @@ public class Tintolmarket {
 		        
 		        while ((bytesRead = fin.read(buffer)) != -1) {
 		        	String str = new String(buffer,StandardCharsets.ISO_8859_1);
-		            outStream.println(str);
+		            outStream.write(buffer, 0, bytesRead);
 		        }
 		        
 		        fin.close();
@@ -325,7 +326,7 @@ public class Tintolmarket {
 	private static byte[] signNonce(PrivateKey privateKey, String nonce) {
 		Signature signature = null;
 		try {
-			signature = Signature.getInstance("SHA256withRSA");
+			signature = Signature.getInstance("MD5withRSA");
 		} catch (NoSuchAlgorithmException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
