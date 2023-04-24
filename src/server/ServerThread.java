@@ -6,10 +6,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
@@ -58,7 +57,7 @@ public class ServerThread extends Thread {
 	/**
 	 * Channel to send messages to the client
 	 */
-	private PrintWriter outStream;
+	private ObjectOutputStream outStream;
 
 	/**
 	 * Channel to receive messages from the client
@@ -75,7 +74,7 @@ public class ServerThread extends Thread {
 	public void run() {
 		try {
 
-			this.outStream = new PrintWriter(socket.getOutputStream(), true);
+			this.outStream = new ObjectOutputStream(socket.getOutputStream());
 			this.inStream = new ObjectInputStream(socket.getInputStream());
 
 			String user = null;
@@ -109,7 +108,7 @@ public class ServerThread extends Thread {
 					// Send the nonce to the client
 					String nonceStr = new String(nonce,StandardCharsets.ISO_8859_1);
 					byte[] nonce2 = nonceStr.getBytes(StandardCharsets.ISO_8859_1);
-					outStream.println(nonceStr+":"+"true");
+					outStream.writeObject(nonceStr+":"+"true");
 					
 					//byte[] buff = new byte[265];
 					//buff = (byte[]) inStream.readObject();
@@ -126,10 +125,10 @@ public class ServerThread extends Thread {
 					
 					
 					if (Arrays.equals(nonce,nonceReceived)) {
-
+						System.out.println("Nonce recebido está correto !!");
 						// ir buscar certificado
 
-						File certFile = getFile(SERVERPATH + user + ".crt");
+						File certFile = receiveFile(SERVERPATH + user + ".crt");
 
 						CertificateFactory cf = CertificateFactory.getInstance("X.509");
 						FileInputStream fis = new FileInputStream(certFile.getPath());
@@ -144,10 +143,14 @@ public class ServerThread extends Thread {
 						
 						System.out.println("signedNonce :"+answer.split(":")[1]);
 						
+						
+						
+						byte[] signedNonce = answer.split(":")[1].getBytes();
+						
 						if (!ver.verify(answer.split(":")[1].getBytes())) { // NON AUTHORIZED
 							
 							System.out.println("server:\tNon Authorized Login!");
-							outStream.println("Non Authorized Login! Please Try Again!");
+							outStream.writeObject("Non Authorized Login! Please Try Again!");
 							System.exit(-1);
 						} else {
 							
@@ -160,12 +163,12 @@ public class ServerThread extends Thread {
 								writer.write(user + ":" + certFile.getPath() + "\n");
 								writer.close();
 							}
-							outStream.println("true");
+							outStream.writeObject("true");
 						}
 					}
 
 				} else { // Current User
-					outStream.println(nonce);
+					outStream.writeObject(nonce);
 					outStream.flush();
 
 					String signedNonce = (String) inStream.readObject();
@@ -180,12 +183,12 @@ public class ServerThread extends Thread {
 
 						if (!ver.verify(signedNonce.getBytes())) { // NON AUTHORIZED
 							System.out.println("server:\tNon Authorized Login!");
-							outStream.println("Non Authorized Login! Please Try Again!");
+							outStream.writeObject("Non Authorized Login! Please Try Again!");
 							System.exit(-1);
 						}
 					} else {
 						System.out.println("server:\tUser: |" + user + "| not found !");
-						outStream.println("User not found !");
+						outStream.writeObject("User not found !");
 						System.exit(-1);
 					}
 
@@ -215,7 +218,7 @@ public class ServerThread extends Thread {
 					} else if (op.equals("r") || op.equals("read")) {
 						read(cmd);
 					} else {
-						outStream.println("\n\tCommand not accepted");
+						outStream.writeObject("\n\tCommand not accepted");
 					}
 				}
 
@@ -231,35 +234,35 @@ public class ServerThread extends Thread {
 		}
 	}
 
-	private File getFile(String filepath) throws IOException {
+	private File receiveFile(String filepath) throws IOException {
 		
 		File file = new File(filepath);
 		file.createNewFile();
 		FileOutputStream fout = new FileOutputStream(file,true);
         OutputStream output = new BufferedOutputStream(fout);
-	   
+	    int totalsize = 0;
+		try {
+			totalsize = Integer.parseInt((String) (inStream.readObject()));
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		FileOutputStream fos = new FileOutputStream(file);
+	    byte[] buffer = new byte[1024];
+	    int bytesRead;
+	    while (totalsize > 0) {
 	    	
-	    	int size = 0;
-			try {
-				size = Integer.parseInt((String) (inStream.readObject()));
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			 int bytesRead =0;
-			 byte[] buff = new byte[1024];
-			 int alreadyRead =0;
-             while(alreadyRead + (bytesRead = inStream.read(buff, 0, 1024)) <size) {
-                 output.write(buff, 0, bytesRead);
-                 alreadyRead += bytesRead;
-             }
-             output.close();
-             fout.close();
+	    	bytesRead = inStream.read(buffer);
 	    	
+	        output.write(buffer, 0, bytesRead);
+	        
+	        totalsize -= bytesRead;
+	    }
+	    fos.close();
+	    output.close();
 	    return file;
 	}
 
-	private void read(String cmd) {
+	private void read(String cmd) throws IOException {
 		StringBuilder sb = new StringBuilder();
 		ArrayList<Message> msgs = server.messages.getMessages(this.currentCli);
 		sb.append("Unread messages:\n");
@@ -269,51 +272,51 @@ public class ServerThread extends Thread {
 			}
 			server.messages.delMessages(this.currentCli);
 
-			outStream.println(sb.toString());
+			outStream.writeObject(sb.toString());
 
 		} else {
 
-			outStream.println("Your Inbox is Clear!");
+			outStream.writeObject("Your Inbox is Clear!");
 
 		}
 
 	}
 
-	private void talk(String cmd) {
+	private void talk(String cmd) throws IOException {
 		String[] parts = cmd.split("\\s+");
 		Client dest = server.clients.get(parts[1]);
 		if (dest == null) {
-			outStream.println("Destination user not found!");
+			outStream.writeObject("Destination user not found!");
 
 		} else {
 			Message m = new Message(this.currentCli, dest, parts[2]);
 			server.messages.addMessage(dest, m, false);
-			outStream.println("Message sent!");
+			outStream.writeObject("Message sent!");
 
 		}
 
 	}
 
-	private void classify(String cmd) {
+	private void classify(String cmd) throws IOException {
 		String[] parts = cmd.split("\\s+");
 		Tintol tintol = this.server.wines.get(parts[1]);
 		Double stars = Double.parseDouble(parts[2]);
 		if (tintol != null) {
 			tintol.classify(stars);
-			this.outStream.println(("The " + tintol.getName() + " has been rated with " + stars + " stars."));
+			this.outStream.writeObject(("The " + tintol.getName() + " has been rated with " + stars + " stars."));
 		} else {
-			this.outStream.println(parts[1] + " not found!");
+			this.outStream.writeObject(parts[1] + " not found!");
 		}
 
 	}
 
-	private void wallet() {
+	private void wallet() throws IOException {
 
-		this.outStream.println(("Your current balance is: " + currentCli.getBalance() + " €"));
+		this.outStream.writeObject(("Your current balance is: " + currentCli.getBalance() + " €"));
 
 	}
 
-	private void buy(String cmd) {
+	private void buy(String cmd) throws IOException {
 		String[] parts = cmd.split("\\s+");
 		Tintol tintol = server.wines.get(parts[1]);
 		Client seller = server.clients.get(parts[2]);
@@ -321,21 +324,21 @@ public class ServerThread extends Thread {
 
 		if (tintol == null) {
 
-			this.outStream.println("Wine does not exist!");
+			this.outStream.writeObject("Wine does not exist!");
 
 		} else if (seller == null) {
 
-			this.outStream.println("Seller does not exist!");
+			this.outStream.writeObject("Seller does not exist!");
 
 		} else {
 			Sell s = server.sells.getSell(seller, tintol);
 			if (quant > s.getQuant()) {
-				this.outStream.println("Not enough units available");
+				this.outStream.writeObject("Not enough units available");
 			} else {
 				if (server.sells.buy(tintol, seller, quant, this.currentCli)) {
-					this.outStream.println("U successfully bought: " + quant + " units of" + tintol.getName());
+					this.outStream.writeObject("U successfully bought: " + quant + " units of" + tintol.getName());
 				} else {
-					this.outStream.println("Not enough balance available");
+					this.outStream.writeObject("Not enough balance available");
 				}
 
 			}
@@ -343,7 +346,7 @@ public class ServerThread extends Thread {
 
 	}
 
-	private void view(String cmd) {
+	private void view(String cmd) throws IOException {
 		try {
 			String[] parts = cmd.split("\\s+");
 			String wineName = parts[1];
@@ -355,14 +358,14 @@ public class ServerThread extends Thread {
 						+ " € per unit.\n");
 			}
 
-			outStream.println(result.toString());
+			outStream.writeObject(result.toString());
 		} catch (NullPointerException eNull) {
-			outStream.println("Wine: " + cmd.split("\\s+")[1] + " not found!");
+			outStream.writeObject("Wine: " + cmd.split("\\s+")[1] + " not found!");
 		}
 
 	}
 
-	private void sell(String cmd) {
+	private void sell(String cmd) throws IOException {
 		// sell wine1 value quant
 		String[] parts = cmd.split("\\s+");
 		String wineName = parts[1];
@@ -374,19 +377,19 @@ public class ServerThread extends Thread {
 			if ((sell = server.sells.getSell(currentCli, tintol)) == null) {
 				sell = new Sell(this.currentCli, tintol, quant, price);
 				server.sells.add(sell);
-				outStream.println((String) (quant + " units of " + tintol.getName() + " put up for sale, for " + price
+				outStream.writeObject((String) (quant + " units of " + tintol.getName() + " put up for sale, for " + price
 						+ "€ each!"));
 
 			} else {
 				sell.setQuant(sell.getQuant() + quant);
 				sell.writeStats();
-				outStream.println((String) ("ERROR - this sale already exists! \n\t" + "Only sell quantity updated\n\t")
+				outStream.writeObject((String) ("ERROR - this sale already exists! \n\t" + "Only sell quantity updated\n\t")
 						+ (quant + " units of " + tintol.getName() + " added in previous sale"));
 
 			}
 
 		} else {
-			outStream.println((String) ("Error - Wine not found!\n"));
+			outStream.writeObject((String) ("Error - Wine not found!\n"));
 		}
 
 	}
@@ -436,11 +439,11 @@ public class ServerThread extends Thread {
 
 				Tintol tintol = new Tintol(parts[1], img);
 				if (server.wines.get(parts[1]) != null) {
-					outStream.println("Error - Wine already exists!");
+					outStream.writeObject("Error - Wine already exists!");
 					System.out.println("server:\tError - Wine already exists!");
 				} else {
 					server.wines.put(tintol.getName(), tintol);
-					outStream.println((String) ("Tintol - " + tintol.getName() + " added!"));
+					outStream.writeObject((String) ("Tintol - " + tintol.getName() + " added!"));
 					System.out.println("server:\t(Tintol) - " + tintol.getName() + " added!");
 				}
 
