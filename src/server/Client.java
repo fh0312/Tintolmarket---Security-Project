@@ -1,8 +1,13 @@
 package server;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -20,7 +25,7 @@ import java.util.Scanner;
 public class Client {
 	
 	private String user;
-	private String pubKey;
+	private String certPath;
 	private Double balance;
 	private File data ;
 	private static final String SERVERPATH = "server_files//";
@@ -37,7 +42,7 @@ public class Client {
 	 */
 	protected Client(String u,String p) {
 		this.user = u;
-		this.pubKey = p;
+		this.certPath = p;
 		this.balance = 200.0;
 		
 		this.data = new File (CLIPATH+this.user+".txt");
@@ -64,7 +69,7 @@ public class Client {
 				FileWriter fw = new FileWriter(this.data);
 				StringBuffer sb = new StringBuffer();
 				sb.append("balance="+this.balance+"\n");
-				sb.append("password="+this.pubKey+"\n");
+				sb.append("certPath="+this.certPath+"\n");
 				
 				Scanner sc = new Scanner(this.data);
 				if(sc.hasNextLine()) {
@@ -95,7 +100,7 @@ public class Client {
 				FileWriter fw = new FileWriter(this.data);
 				StringBuffer sb = new StringBuffer();
 				sb.append("balance="+this.balance+"\n");
-				sb.append("password="+this.pubKey+"\n");
+				sb.append("certPath="+this.certPath+"\n");
 				for(Sell s: this.sells) {
 					sb.append(s.toString());
 				}
@@ -129,7 +134,7 @@ public class Client {
 		try {
 			sc = new Scanner(data);
 			this.balance = Double.parseDouble((sc.nextLine().split("="))[1]);
-			this.pubKey = sc.nextLine().split("=")[1];
+			this.certPath = sc.nextLine().split("=")[1];
 			sc.close();
 		}
 		catch (FileNotFoundException e) {
@@ -143,9 +148,6 @@ public class Client {
 	 * @param p - possible password attempt
 	 * @return true if p is the user's password
 	 */
-	protected boolean validate(String p) {
-		return p.equals(pubKey);
-	}
 	
 	/**
 	 * Add a sell to the user's sells array
@@ -190,8 +192,33 @@ public class Client {
 	}
 
 
-	public String getPubKey() {
-		return this.pubKey;
+	public Certificate getCert() {
+		FileInputStream fis = null;
+		try {
+			fis = new FileInputStream(this.certPath);
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		}
+        CertificateFactory cf = null;
+		try {
+			cf = CertificateFactory.getInstance("X.509");
+		} catch (CertificateException e) {
+			e.printStackTrace();
+		}
+        X509Certificate cert = null;
+		try {
+			cert = (X509Certificate) cf.generateCertificate(fis);
+		} catch (CertificateException e) {
+			e.printStackTrace();
+		}
+
+        // Close the file input stream
+        try {
+			fis.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        return cert;
 		
 	}
 

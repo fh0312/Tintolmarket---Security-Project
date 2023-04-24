@@ -2,6 +2,7 @@ package server;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -128,7 +129,12 @@ public class MessageCatalog {
 						this.messages.get(dest.getUser()).size()-1);
 				fw.append(m.getSrc().getUser());
 				fw.append("=");
-				fw.append(m.getMessage()+"\n");
+				FileOutputStream fs = new FileOutputStream(msg_data,true);
+				fw.close();
+				fs.write(m.getMessage());
+				fw = new FileWriter(msg_data,true);
+				fs.close();
+				fw.append("\n");
 				fw.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -152,8 +158,11 @@ public class MessageCatalog {
 							Scanner sc = new Scanner(msgFile);
 							while (sc.hasNextLine()) {
 								String line = sc.nextLine();
-								Message m = new Message(clients.get(line.split("=")[0]),
-										dest, line.split("=")[1]);
+								Client c = clients.get(line.split("=")[0]);
+								
+								byte[] msg = line.split("=")[1].getBytes();
+								
+								Message m = new Message(c,dest,msg);
 								addMessage(dest,m,true);
 							}
 							sc.close();

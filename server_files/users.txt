@@ -1,1 +1,1 @@
-test:server_files\test.crt
+client2:server_files\client2.crt

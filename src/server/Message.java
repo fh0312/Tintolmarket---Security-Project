@@ -29,7 +29,7 @@ public class Message {
 	/**
 	 * Message's body text
 	 */
-	private String message;
+	private byte[] message;
 	
 	/**
 	 * Message's constructor
@@ -37,7 +37,7 @@ public class Message {
 	 * @param dest - destination client
 	 * @param message - body text
 	 */
-	protected Message(Client src, Client dest, String message) {
+	protected Message(Client src, Client dest, byte[] message) {
 		this.src = src;
 		this.dest = dest;
 		this.message = message;
@@ -63,7 +63,7 @@ public class Message {
 	 * Gets the message's body 
 	 * @return body 
 	 */
-	protected String getMessage() {
+	protected byte[] getMessage() {
 		return message;
 	}	
 	

@@ -12,7 +12,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -20,15 +20,15 @@ import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Scanner;
 
 /**
- * @author Alexandre Müller - FC56343 Diogo Ramos - FC56308 Francisco Henriques
- *         - FC56348
+ * @author 
+ * Alexandre Müller - FC56343 
+ * Diogo Ramos - FC56308 
+ * Francisco Henriques - FC56348
  *
  */
 
@@ -63,6 +63,11 @@ public class ServerThread extends Thread {
 	 * Channel to receive messages from the client
 	 */
 	private ObjectInputStream inStream;
+	
+	
+
+	
+	
 
 	public ServerThread(Socket inSoc, TintolmarketServer s) {
 		this.socket = inSoc;
@@ -73,7 +78,7 @@ public class ServerThread extends Thread {
 
 	public void run() {
 		try {
-
+			
 			this.outStream = new ObjectOutputStream(socket.getOutputStream());
 			this.inStream = new ObjectInputStream(socket.getInputStream());
 
@@ -82,7 +87,7 @@ public class ServerThread extends Thread {
 
 			try {
 				user = (String) inStream.readObject();
-
+				
 				String userFound = "";
 
 				Scanner scanner = new Scanner(users);
@@ -100,34 +105,28 @@ public class ServerThread extends Thread {
 				// ja temos o userID
 
 				// nonce:
+				
 				byte[] nonce = new byte[8];
 				new SecureRandom().nextBytes(nonce);
-				
-				
-				if (userFound.equals("")) { // New User
+
+				if (userFound.equals("")) { 															// New User
 					// Send the nonce to the client
-					String nonceStr = new String(nonce,StandardCharsets.ISO_8859_1);
-					byte[] nonce2 = nonceStr.getBytes(StandardCharsets.ISO_8859_1);
-					outStream.writeObject(nonceStr+":"+"true");
-					
-					//byte[] buff = new byte[265];
-					//buff = (byte[]) inStream.readObject();
-					
-					//String answer = new String(buff, StandardCharsets.ISO_8859_1);
+					String nonceStr = new String(nonce, StandardCharsets.ISO_8859_1);
+					outStream.writeObject(nonceStr + ":" + "true");
+
+					// byte[] buff = new byte[265];
+					// buff = (byte[]) inStream.readObject();
+
+					// String answer = new String(buff, StandardCharsets.ISO_8859_1);
 					String answer1 = (String) inStream.readObject();
 					String answer2 = (String) inStream.readObject();
-					System.out.println("answer1: "+answer1);
-					System.out.println("answer2: "+answer2);
-					
-					
+					// System.out.println("answer1: "+answer1);
+					// System.out.println("answer2: "+answer2);
 
-					
-					
 					byte[] nonceReceived = answer1.getBytes(StandardCharsets.ISO_8859_1);
-					
-					
-					if (Arrays.equals(nonce,nonceReceived)) {
-						System.out.println("\n\n Nonce recebido está correto !!\n\n");
+
+					if (Arrays.equals(nonce, nonceReceived)) {
+						System.out.println("server:\t Nonce received is correct !!\n\n");
 						// ir buscar certificado
 
 						File certFile = receiveFile(SERVERPATH + user + ".crt");
@@ -135,62 +134,76 @@ public class ServerThread extends Thread {
 						CertificateFactory cf = CertificateFactory.getInstance("X.509");
 						FileInputStream fis = new FileInputStream(certFile.getPath());
 						Certificate cert = cf.generateCertificate(fis);
+						
+						
 
 						// Get the public key from the certificate
 						pubKey = cert.getPublicKey();
+						
+						
 
 						Signature ver = Signature.getInstance("SHA256withRSA");
 						ver.initVerify(pubKey);
 						ver.update(nonce);
 						
-						//System.out.println("signedNonce ->  "+answer2);
-						
-						
-						
+
+						// System.out.println("signedNonce -> "+answer2);
+
 						byte[] signedNonce = answer2.getBytes(StandardCharsets.ISO_8859_1);
-						
+
 						int size = signedNonce.length;
-						
-						System.out.println("nonceSigned size is: "+size);
-						
+
+						// System.out.println("nonceSigned size is: "+size);
+
 						if (!ver.verify(signedNonce)) { // NON AUTHORIZED
-							
+
 							System.out.println("server:\tNon Authorized Login!");
-							outStream.writeObject("Non Authorized Login! Please Try Again!");
+							outStream.writeObject("server:\tNon Authorized Login! Please Try Again!");
 							System.exit(-1);
 						} else {
 							
 							Client newCli = new Client(user, certFile.getPath());
+							
 							server.clients.put(user, newCli);
 							this.currentCli = newCli;
+
 							FileWriter writer = new FileWriter(users, true);
 
 							synchronized (writer) {
 								writer.write(user + ":" + certFile.getPath() + "\n");
 								writer.close();
 							}
+
 							outStream.writeObject("true");
 						}
 					}
 
-				} else { // Current User
-					outStream.writeObject(nonce);
-					outStream.flush();
+				} else { 																								// Current User
+					
+					
+					// Send the nonce to the client
+					String nonceStr = new String(nonce, StandardCharsets.ISO_8859_1);
+					outStream.writeObject(nonceStr);
 
-					String signedNonce = (String) inStream.readObject();
+					String signedNonceStr = (String) inStream.readObject();
+					byte[] signedNonce = signedNonceStr.getBytes(StandardCharsets.ISO_8859_1);
 
 					this.currentCli = server.clients.get(user);
 
 					if (this.currentCli != null) {
-						pubKey = loadPublicKey(this.currentCli.getPubKey());
+						pubKey = loadPublicKey(this.currentCli.getCert());
 						Signature ver = Signature.getInstance("SHA256withRSA");
 						ver.initVerify(pubKey);
 						ver.update(nonce);
 
-						if (!ver.verify(signedNonce.getBytes())) { // NON AUTHORIZED
+						if (!ver.verify(signedNonce)) { // NON AUTHORIZED
 							System.out.println("server:\tNon Authorized Login!");
 							outStream.writeObject("Non Authorized Login! Please Try Again!");
 							System.exit(-1);
+						}
+						else {
+							outStream.writeObject("true");
+							System.out.println("server:\tLogin Authorized!");
 						}
 					} else {
 						System.out.println("server:\tUser: |" + user + "| not found !");
@@ -201,8 +214,7 @@ public class ServerThread extends Thread {
 				}
 
 				String cmd = "";
-	
-				
+
 				while (!(cmd = (String) inStream.readObject()).equals("-1")) {
 
 					System.out.println("server:\tCommand received: " + cmd);
@@ -220,7 +232,8 @@ public class ServerThread extends Thread {
 					} else if (op.equals("c") || op.equals("classify")) {
 						classify(cmd);
 					} else if (op.equals("t") || op.equals("talk")) {
-						talk(cmd);
+						talk(cmd,(byte[])inStream.readObject());
+						
 					} else if (op.equals("r") || op.equals("read")) {
 						read(cmd);
 					} else {
@@ -235,67 +248,74 @@ public class ServerThread extends Thread {
 			}
 
 		} catch (Exception e) {
-			System.out.println("Error");
+			System.out.println("server:\\tError\n");
 			e.printStackTrace();
 		}
 	}
 
-	private File receiveFile(String filepath) throws IOException {
-		
+	private File receiveFile(String filepath) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
+
 		File file = new File(filepath);
+		file.delete();
 		file.createNewFile();
-		FileOutputStream fout = new FileOutputStream(file,true);
-        OutputStream output = new BufferedOutputStream(fout);
-	    int totalsize = 0;
+
+		FileOutputStream fout = new FileOutputStream(file, true);
+		OutputStream output = new BufferedOutputStream(fout);
+		int totalsize = 0;
 		try {
 			totalsize = Integer.parseInt((String) (inStream.readObject()));
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 		FileOutputStream fos = new FileOutputStream(file);
-	    byte[] buffer = new byte[1024];
-	    int bytesRead;
-	    while (totalsize > 0) {
-	    	
-	    	bytesRead = inStream.read(buffer);
-	    	
-	        output.write(buffer, 0, bytesRead);
-	        
-	        totalsize -= bytesRead;
-	    }
-	    fos.close();
-	    output.close();
-	    return file;
+		byte[] buffer = new byte[1024];
+		int bytesRead;
+		while (totalsize > 0) {
+
+			bytesRead = inStream.read(buffer);
+
+			output.write(buffer, 0, bytesRead);
+
+			totalsize -= bytesRead;
+		}
+		fos.close();
+		output.close();
+		return file;
 	}
 
 	private void read(String cmd) throws IOException {
-		StringBuilder sb = new StringBuilder();
 		ArrayList<Message> msgs = server.messages.getMessages(this.currentCli);
-		sb.append("Unread messages:\n");
+		
+		
 		if (msgs != null) {
+			outStream.writeObject(msgs.size());//envio do numero de mensagens
+			outStream.writeObject("Unread messages:\n");
 			for (Message m : msgs) {
-				sb.append("\t  " + m.getSrc().getUser() + " sent: " + m.getMessage() + "\n");
+				outStream.writeObject(("\n\t  " + m.getSrc().getUser() + " sent: "));//envio string
+				outStream.writeObject(m.getMessage()); // envio bytes
 			}
 			server.messages.delMessages(this.currentCli);
 
-			outStream.writeObject(sb.toString());
+			
 
 		} else {
-
-			outStream.writeObject("Your Inbox is Clear!");
-
+			outStream.writeObject(0);
+			outStream.writeObject("Your inbox is clear!");
 		}
 
 	}
 
-	private void talk(String cmd) throws IOException {
+	private void talk(String cmd, byte[] bs) throws IOException {
 		String[] parts = cmd.split("\\s+");
 		Client dest = server.clients.get(parts[1]);
+		
+		
 		if (dest == null) {
 			outStream.writeObject("Destination user not found!");
 
 		} else {
-			Message m = new Message(this.currentCli, dest, parts[2]);
+			
+			Message m = new Message(this.currentCli, dest, bs);
 			server.messages.addMessage(dest, m, false);
 			outStream.writeObject("Message sent!");
 
@@ -383,14 +403,15 @@ public class ServerThread extends Thread {
 			if ((sell = server.sells.getSell(currentCli, tintol)) == null) {
 				sell = new Sell(this.currentCli, tintol, quant, price);
 				server.sells.add(sell);
-				outStream.writeObject((String) (quant + " units of " + tintol.getName() + " put up for sale, for " + price
-						+ "€ each!"));
+				outStream.writeObject((String) (quant + " units of " + tintol.getName() + " put up for sale, for "
+						+ price + "€ each!"));
 
 			} else {
 				sell.setQuant(sell.getQuant() + quant);
 				sell.writeStats();
-				outStream.writeObject((String) ("ERROR - this sale already exists! \n\t" + "Only sell quantity updated\n\t")
-						+ (quant + " units of " + tintol.getName() + " added in previous sale"));
+				outStream.writeObject(
+						(String) ("ERROR - this sale already exists! \n\t" + "Only sell quantity updated\n\t")
+								+ (quant + " units of " + tintol.getName() + " added in previous sale"));
 
 			}
 
@@ -400,72 +421,35 @@ public class ServerThread extends Thread {
 
 	}
 
-	private void addWine(String cmd) {
-
+	private void addWine(String cmd) throws IOException {
+		System.out.println("cmd is " + cmd);
 		String[] parts = cmd.split("\\s+");
-		String fileName = parts[2];
-		byte[] buff = new byte[1024];
 
-		File img = new File(WINESPATH + parts[1] + "." + parts[2].split("\\.")[1]);
-		img.delete();
+		// File img = new File(WINESPATH + parts[1] + "." + parts[2].split("\\.")[1]);
+		File img = null;
 		try {
-			
-			if (!img.createNewFile()) {
-				System.out.println("server:\tFile: " + fileName + " -> NOT CREATED");
-			} else {
-				FileOutputStream fout = new FileOutputStream(img, true);
-				OutputStream output = new BufferedOutputStream(fout);
+			img = receiveFile(WINESPATH + parts[1] + "." + parts[2].split("\\.")[1]);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
 
-				long size = 0;
-
-				try {
-					size = (long) (inStream.readObject());
-				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
-				int alreadyRead = 0;
-				while (alreadyRead < size) {
-					String line = null;
-					try {
-						line = (String) inStream.readObject();
-					} catch (ClassNotFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					if (line == null) {
-						break;
-					}
-					output.write(line.getBytes());
-					alreadyRead += line.length();
-				}
-				output.close();
-				fout.close();
-
-				Tintol tintol = new Tintol(parts[1], img);
-				if (server.wines.get(parts[1]) != null) {
-					outStream.writeObject("Error - Wine already exists!");
-					System.out.println("server:\tError - Wine already exists!");
-				} else {
-					server.wines.put(tintol.getName(), tintol);
-					outStream.writeObject((String) ("Tintol - " + tintol.getName() + " added!"));
-					System.out.println("server:\t(Tintol) - " + tintol.getName() + " added!");
-				}
-
-			}
-		} catch (NumberFormatException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		Tintol tintol = new Tintol(parts[1], img);
+		if (server.wines.get(parts[1]) != null) {
+			outStream.writeObject("Error - Wine already exists!");
+			System.out.println("server:\tError - Wine already exists!");
+		} else {
+			server.wines.put(tintol.getName(), tintol);
+			outStream.writeObject((String) ("Tintol - " + tintol.getName() + " added!"));
+			System.out.println("server:\t(Tintol) - " + tintol.getName() + " added!");
 		}
 
 	}
 
-	public PublicKey loadPublicKey(String publicKeyString) throws NoSuchAlgorithmException, InvalidKeySpecException {
-		byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyString);
-		X509EncodedKeySpec spec = new X509EncodedKeySpec(publicKeyBytes);
-		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-		PublicKey publicKey = keyFactory.generatePublic(spec);
-		return publicKey;
+	public PublicKey loadPublicKey(Certificate cert) throws NoSuchAlgorithmException, InvalidKeySpecException {
+		return cert.getPublicKey();
 	}
+	
+	
+	
+	
 }

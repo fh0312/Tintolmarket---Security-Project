@@ -1,2 +1,0 @@
-balance=200.0
-password=server_files\test.crt
