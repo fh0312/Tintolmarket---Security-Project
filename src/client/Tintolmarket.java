@@ -142,19 +142,18 @@ public class Tintolmarket {
 				if(nonceStrReceived.contains(":")) { // Nao esta registado
 					
 					StringBuilder ret = new StringBuilder();
-					String parte1 = new String(nonce,StandardCharsets.ISO_8859_1)+":";
+					String parte1 = new String(nonce,StandardCharsets.ISO_8859_1);
 					
 					byte[] nonceSigned = signNonce(privateKey,new String(nonce,StandardCharsets.ISO_8859_1));
 					String parte2 = new String(nonceSigned,StandardCharsets.ISO_8859_1);
 					
 					int sizee = nonceSigned.length;
 					
-					System.out.println("Resposta ao server com (nonce:signNonce) -> " + parte1+parte2);
-					ret.append(parte1);
-					ret.append(parte2);
+					System.out.println("Resposta ao server com (nonce:signNonce) -> " + parte1+"\n\n"+parte2);
 					
-					System.out.println("a: "+ret.toString());
-					outStream.writeObject(ret.toString());
+					
+					outStream.writeObject(parte1);
+					outStream.writeObject(parte2);
 					
 			        try {
 						ks.load(new FileInputStream(keystorePath), pswdKeystore.toCharArray());
@@ -189,7 +188,7 @@ public class Tintolmarket {
 					
 				}
 				
-				String answer = ""; //indicacao que foi aprovado o login //TODO
+				String answer = (String) inStream.readObject(); //indicacao que foi aprovado o login //TODO
 				
 
 				
@@ -338,7 +337,7 @@ public class Tintolmarket {
 	private static byte[] signNonce(PrivateKey privateKey, String nonce) {
 		Signature signature = null;
 		try {
-			signature = Signature.getInstance("MD5withRSA");
+			signature = Signature.getInstance("SHA256withRSA");
 		} catch (NoSuchAlgorithmException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

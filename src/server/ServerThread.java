@@ -114,18 +114,20 @@ public class ServerThread extends Thread {
 					//buff = (byte[]) inStream.readObject();
 					
 					//String answer = new String(buff, StandardCharsets.ISO_8859_1);
-					String answer = (String) inStream.readObject();
-					System.out.println("answer: "+answer);
+					String answer1 = (String) inStream.readObject();
+					String answer2 = (String) inStream.readObject();
+					System.out.println("answer1: "+answer1);
+					System.out.println("answer2: "+answer2);
 					
 					
 
 					
 					
-					byte[] nonceReceived = answer.split(":")[0].getBytes(StandardCharsets.ISO_8859_1);
+					byte[] nonceReceived = answer1.getBytes(StandardCharsets.ISO_8859_1);
 					
 					
 					if (Arrays.equals(nonce,nonceReceived)) {
-						System.out.println("Nonce recebido está correto !!");
+						System.out.println("\n\n Nonce recebido está correto !!\n\n");
 						// ir buscar certificado
 
 						File certFile = receiveFile(SERVERPATH + user + ".crt");
@@ -141,13 +143,17 @@ public class ServerThread extends Thread {
 						ver.initVerify(pubKey);
 						ver.update(nonce);
 						
-						System.out.println("signedNonce :"+answer.split(":")[1]);
+						//System.out.println("signedNonce ->  "+answer2);
 						
 						
 						
-						byte[] signedNonce = answer.split(":")[1].getBytes();
+						byte[] signedNonce = answer2.getBytes(StandardCharsets.ISO_8859_1);
 						
-						if (!ver.verify(answer.split(":")[1].getBytes())) { // NON AUTHORIZED
+						int size = signedNonce.length;
+						
+						System.out.println("nonceSigned size is: "+size);
+						
+						if (!ver.verify(signedNonce)) { // NON AUTHORIZED
 							
 							System.out.println("server:\tNon Authorized Login!");
 							outStream.writeObject("Non Authorized Login! Please Try Again!");
@@ -196,7 +202,7 @@ public class ServerThread extends Thread {
 
 				String cmd = "";
 	
-
+				
 				while (!(cmd = (String) inStream.readObject()).equals("-1")) {
 
 					System.out.println("server:\tCommand received: " + cmd);
