@@ -27,4 +27,10 @@ public class TransacaoSell extends Transacao{
     public String getIdDono(){
         return this.idDono;
     }
+
+	@Override
+	public String toString() {
+		return "TransacaoSell->unidadesCriadas=" + unidadesCriadas + ",idDono=" + idDono + ",nomeVinho=" + nomeVinho
+				+ ",valorPerUnit=" + valorPerUnit;
+	}
 }

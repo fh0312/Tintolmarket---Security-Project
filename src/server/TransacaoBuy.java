@@ -27,4 +27,12 @@ public class TransacaoBuy extends Transacao{
     public String getIdNovoDono(){
         return this.idNovoDono;
     }
+
+	@Override
+	public String toString() {
+		return "TransacaoBuy->unidadesVendidas=" + unidadesVendidas + ",idNovoDono=" + idNovoDono + ",nomeVinho="
+				+ nomeVinho + ",valorPerUnit=" + valorPerUnit;
+	}
+    
+    
 }

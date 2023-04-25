@@ -4,7 +4,6 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -12,6 +11,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.security.AlgorithmParameters;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -22,13 +23,21 @@ import java.security.cert.CertificateFactory;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+
 /**
- * @author 
- * Alexandre Müller - FC56343 
- * Diogo Ramos - FC56308 
- * Francisco Henriques - FC56348
+ * @author Alexandre Müller - FC56343 Diogo Ramos - FC56308 Francisco Henriques
+ *         - FC56348
  *
  */
 
@@ -63,11 +72,6 @@ public class ServerThread extends Thread {
 	 * Channel to receive messages from the client
 	 */
 	private ObjectInputStream inStream;
-	
-	
-
-	
-	
 
 	public ServerThread(Socket inSoc, TintolmarketServer s) {
 		this.socket = inSoc;
@@ -78,7 +82,7 @@ public class ServerThread extends Thread {
 
 	public void run() {
 		try {
-			
+
 			this.outStream = new ObjectOutputStream(socket.getOutputStream());
 			this.inStream = new ObjectInputStream(socket.getInputStream());
 
@@ -87,10 +91,11 @@ public class ServerThread extends Thread {
 
 			try {
 				user = (String) inStream.readObject();
-				
-				String userFound = "";
 
-				Scanner scanner = new Scanner(users);
+				String userFound = "";
+				
+				String usersCont = server.getUsersContent();
+				Scanner scanner = new Scanner(usersCont);
 				String currentLine;
 
 				while (scanner.hasNextLine()) {
@@ -105,55 +110,41 @@ public class ServerThread extends Thread {
 				// ja temos o userID
 
 				// nonce:
-				
+
 				byte[] nonce = new byte[8];
 				new SecureRandom().nextBytes(nonce);
 
-				if (userFound.equals("")) { 															// New User
-					// Send the nonce to the client
+				if (userFound.equals("")) { // New User
+
 					String nonceStr = new String(nonce, StandardCharsets.ISO_8859_1);
 					outStream.writeObject(nonceStr + ":" + "true");
 
-					// byte[] buff = new byte[265];
-					// buff = (byte[]) inStream.readObject();
-
-					// String answer = new String(buff, StandardCharsets.ISO_8859_1);
 					String answer1 = (String) inStream.readObject();
 					String answer2 = (String) inStream.readObject();
-					// System.out.println("answer1: "+answer1);
-					// System.out.println("answer2: "+answer2);
+					
 
 					byte[] nonceReceived = answer1.getBytes(StandardCharsets.ISO_8859_1);
 
 					if (Arrays.equals(nonce, nonceReceived)) {
 						System.out.println("server:\t Nonce received is correct !!\n\n");
-						// ir buscar certificado
+
 
 						File certFile = receiveFile(SERVERPATH + user + ".crt");
 
 						CertificateFactory cf = CertificateFactory.getInstance("X.509");
 						FileInputStream fis = new FileInputStream(certFile.getPath());
 						Certificate cert = cf.generateCertificate(fis);
-						
-						
 
-						// Get the public key from the certificate
+				
 						pubKey = cert.getPublicKey();
-						
-						
 
 						Signature ver = Signature.getInstance("SHA256withRSA");
 						ver.initVerify(pubKey);
 						ver.update(nonce);
-						
 
-						// System.out.println("signedNonce -> "+answer2);
 
 						byte[] signedNonce = answer2.getBytes(StandardCharsets.ISO_8859_1);
 
-						int size = signedNonce.length;
-
-						// System.out.println("nonceSigned size is: "+size);
 
 						if (!ver.verify(signedNonce)) { // NON AUTHORIZED
 
@@ -161,26 +152,20 @@ public class ServerThread extends Thread {
 							outStream.writeObject("server:\tNon Authorized Login! Please Try Again!");
 							System.exit(-1);
 						} else {
-							
+
 							Client newCli = new Client(user, certFile.getPath());
-							
+
 							server.clients.put(user, newCli);
 							this.currentCli = newCli;
-
-							FileWriter writer = new FileWriter(users, true);
-
-							synchronized (writer) {
-								writer.write(user + ":" + certFile.getPath() + "\n");
-								writer.close();
-							}
+							
+							server.writeNewClient(user + ":" + certFile.getPath() + "\n");
 
 							outStream.writeObject("true");
 						}
 					}
 
-				} else { 																								// Current User
-					
-					
+				} else { // Current User
+
 					// Send the nonce to the client
 					String nonceStr = new String(nonce, StandardCharsets.ISO_8859_1);
 					outStream.writeObject(nonceStr);
@@ -200,8 +185,7 @@ public class ServerThread extends Thread {
 							System.out.println("server:\tNon Authorized Login!");
 							outStream.writeObject("Non Authorized Login! Please Try Again!");
 							System.exit(-1);
-						}
-						else {
+						} else {
 							outStream.writeObject("true");
 							System.out.println("server:\tLogin Authorized!");
 						}
@@ -232,10 +216,11 @@ public class ServerThread extends Thread {
 					} else if (op.equals("c") || op.equals("classify")) {
 						classify(cmd);
 					} else if (op.equals("t") || op.equals("talk")) {
-						talk(cmd,(byte[])inStream.readObject());
-						
+						talk(cmd, (byte[]) inStream.readObject());
 					} else if (op.equals("r") || op.equals("read")) {
 						read(cmd);
+					} else if (op.equals("l") || op.equals("list")) {
+						getTransactionsList();
 					} else {
 						outStream.writeObject("\n\tCommand not accepted");
 					}
@@ -253,7 +238,18 @@ public class ServerThread extends Thread {
 		}
 	}
 
-	private File receiveFile(String filepath) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
+	private void getTransactionsList() throws IOException {
+		StringBuilder sb = new StringBuilder();
+		sb.append("\tTransacoes efetuadas:\n");
+		for(Block b:  server.blks) {
+			for(Transacao t : b.getTrx() )
+				sb.append(t.toString()+"\n");
+		}
+		outStream.writeObject(sb.toString());
+	}
+
+	private File receiveFile(String filepath)
+			throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
 
 		File file = new File(filepath);
 		file.delete();
@@ -285,18 +281,15 @@ public class ServerThread extends Thread {
 
 	private void read(String cmd) throws IOException {
 		ArrayList<Message> msgs = server.messages.getMessages(this.currentCli);
-		
-		
+
 		if (msgs != null) {
-			outStream.writeObject(msgs.size());//envio do numero de mensagens
+			outStream.writeObject(msgs.size());// envio do numero de mensagens
 			outStream.writeObject("Unread messages:\n");
 			for (Message m : msgs) {
-				outStream.writeObject(("\n\t  " + m.getSrc().getUser() + " sent: "));//envio string
+				outStream.writeObject(("\n\t  " + m.getSrc().getUser() + " sent: "));// envio string
 				outStream.writeObject(m.getMessage()); // envio bytes
 			}
 			server.messages.delMessages(this.currentCli);
-
-			
 
 		} else {
 			outStream.writeObject(0);
@@ -308,13 +301,12 @@ public class ServerThread extends Thread {
 	private void talk(String cmd, byte[] bs) throws IOException {
 		String[] parts = cmd.split("\\s+");
 		Client dest = server.clients.get(parts[1]);
-		
-		
+
 		if (dest == null) {
 			outStream.writeObject("Destination user not found!");
 
 		} else {
-			
+
 			Message m = new Message(this.currentCli, dest, bs);
 			server.messages.addMessage(dest, m, false);
 			outStream.writeObject("Message sent!");
@@ -363,6 +355,7 @@ public class ServerThread extends Thread {
 			} else {
 				if (server.sells.buy(tintol, seller, quant, this.currentCli)) {
 					this.outStream.writeObject("U successfully bought: " + quant + " units of" + tintol.getName());
+					server.addTrToBlock(new TransacaoBuy(tintol.getName(), s.getPrice(), quant, this.currentCli.getUser()));
 				} else {
 					this.outStream.writeObject("Not enough balance available");
 				}
@@ -405,6 +398,7 @@ public class ServerThread extends Thread {
 				server.sells.add(sell);
 				outStream.writeObject((String) (quant + " units of " + tintol.getName() + " put up for sale, for "
 						+ price + "€ each!"));
+				server.addTrToBlock(new TransacaoSell(wineName,price,quant,this.currentCli.getUser()));
 
 			} else {
 				sell.setQuant(sell.getQuant() + quant);
@@ -412,7 +406,7 @@ public class ServerThread extends Thread {
 				outStream.writeObject(
 						(String) ("ERROR - this sale already exists! \n\t" + "Only sell quantity updated\n\t")
 								+ (quant + " units of " + tintol.getName() + " added in previous sale"));
-
+				server.addTrToBlock(new TransacaoSell(wineName,price,quant,this.currentCli.getUser()));
 			}
 
 		} else {
@@ -441,6 +435,7 @@ public class ServerThread extends Thread {
 			server.wines.put(tintol.getName(), tintol);
 			outStream.writeObject((String) ("Tintol - " + tintol.getName() + " added!"));
 			System.out.println("server:\t(Tintol) - " + tintol.getName() + " added!");
+			
 		}
 
 	}
@@ -448,8 +443,4 @@ public class ServerThread extends Thread {
 	public PublicKey loadPublicKey(Certificate cert) throws NoSuchAlgorithmException, InvalidKeySpecException {
 		return cert.getPublicKey();
 	}
-	
-	
-	
-	
 }

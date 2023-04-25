@@ -47,7 +47,7 @@ public class Tintolmarket {
 		new File(CLIENTPATH.substring(0, CLIENTPATH.length() - 2)).mkdir();
 
 		Scanner inputCli = new Scanner(System.in);
-
+		
 		String serverAddr = "";
 		int port = 12345;
 		String truststorePath = "";
@@ -73,9 +73,9 @@ public class Tintolmarket {
 			serverAddr = "127.0.0.1";
 			port = 12345;
 			truststorePath = "truststore.client";
-			keystorePath = "keystore.client2";
+			keystorePath = "keystore.client3";
 			pswdKeystore = "adminadmin";
-			userID = "client2";
+			userID = "client3";
 		}
 
 		else {
@@ -264,8 +264,6 @@ public class Tintolmarket {
 									System.out.print(new String(decryptedData));
 								}
 							}
-							
-							
 						}
 						else {
 							outStream.writeObject(cmd); // sending command
@@ -425,6 +423,7 @@ public class Tintolmarket {
 		result.append("\t-" + "classify <wine> <stars>" + "\n");
 		result.append("\t-" + "talk <user> <message>" + "\n");
 		result.append("\t-" + "read" + "\n");
+		result.append("\t-" + "list" + "\n");
 		result.append("\n\t" + "-> ");
 		System.out.print(result);
 	}

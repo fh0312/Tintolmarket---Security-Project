@@ -1,2 +1,0 @@
-balance=200.0
-certPath=server_files\client2.crt

@@ -1,0 +1,7 @@
+[32, 35, 69, 52, 74, -63, 111, -91, 79, 45, -3, -120, -71, 50, -115, -117, -6, 119, 72, -93, 82, 100, -46, -126, -101, 105, -74, 104, 14, -15, -21, -30]
+blk_id = 2
+n_trx = 3
+TransacaoSell->unidadesCriadas=100,idDono=client3,nomeVinho=wine2,valorPerUnit=10.0
+TransacaoSell->unidadesCriadas=100,idDono=client3,nomeVinho=wine2,valorPerUnit=10.0
+TransacaoBuy->unidadesVendidas=10,idNovoDono=client3,nomeVinho=wine2,valorPerUnit=10.0
+null
