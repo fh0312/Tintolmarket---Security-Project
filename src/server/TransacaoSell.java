@@ -5,11 +5,12 @@ public class TransacaoSell extends Transacao{
     private int unidadesCriadas;
     private String idDono;
 
-    public TransacaoSell(String nomeVinho, double valorPerUnit, int unidadesCriadas, String idDono){
+    public TransacaoSell(String nomeVinho, double valorPerUnit, int unidadesCriadas, String idDono, byte[] bs){
         this.nomeVinho = nomeVinho;
         this.valorPerUnit = valorPerUnit;
         this.unidadesCriadas = unidadesCriadas;
         this.idDono = idDono;
+        this.clientSign = bs;
     }
 
     public String getNomeVinho(){
@@ -31,6 +32,6 @@ public class TransacaoSell extends Transacao{
 	@Override
 	public String toString() {
 		return "TransacaoSell->unidadesCriadas=" + unidadesCriadas + ",idDono=" + idDono + ",nomeVinho=" + nomeVinho
-				+ ",valorPerUnit=" + valorPerUnit;
+				+ ",valorPerUnit=" + valorPerUnit + ",assinatura="+this.clientSign;
 	}
 }

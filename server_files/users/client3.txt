@@ -1,3 +1,0 @@
-balance=200.0
-certPath=server_files\client3.crt
-wine2=890;10.0

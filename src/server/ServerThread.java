@@ -206,11 +206,11 @@ public class ServerThread extends Thread {
 					if (op.equals("a") || op.equals("add")) {
 						addWine(cmd);
 					} else if (op.equals("s") || op.equals("sell")) {
-						sell(cmd);
+						sell(cmd,(byte[])inStream.readObject());
 					} else if (op.equals("v") || op.equals("view")) {
 						view(cmd);
 					} else if (op.equals("b") || op.equals("buy")) {
-						buy(cmd);
+						buy(cmd,(byte[])inStream.readObject());
 					} else if (op.equals("w") || op.equals("wallet")) {
 						wallet();
 					} else if (op.equals("c") || op.equals("classify")) {
@@ -334,7 +334,10 @@ public class ServerThread extends Thread {
 
 	}
 
-	private void buy(String cmd) throws IOException {
+	private void buy(String cmd, byte[] bs) throws IOException {
+		
+		//bs é o byte[] signed que veio do cliente - TODO
+		
 		String[] parts = cmd.split("\\s+");
 		Tintol tintol = server.wines.get(parts[1]);
 		Client seller = server.clients.get(parts[2]);
@@ -355,7 +358,7 @@ public class ServerThread extends Thread {
 			} else {
 				if (server.sells.buy(tintol, seller, quant, this.currentCli)) {
 					this.outStream.writeObject("U successfully bought: " + quant + " units of" + tintol.getName());
-					server.addTrToBlock(new TransacaoBuy(tintol.getName(), s.getPrice(), quant, this.currentCli.getUser()));
+					server.addTrToBlock(new TransacaoBuy(tintol.getName(), s.getPrice(), quant, this.currentCli.getUser(),bs));
 				} else {
 					this.outStream.writeObject("Not enough balance available");
 				}
@@ -384,8 +387,12 @@ public class ServerThread extends Thread {
 
 	}
 
-	private void sell(String cmd) throws IOException {
-		// sell wine1 value quant
+	private void sell(String cmd, byte[] bs) throws IOException {
+		
+		
+		//bs é o byte[] signed que veio do cliente - TODO
+		
+		
 		String[] parts = cmd.split("\\s+");
 		String wineName = parts[1];
 		Double price = Double.parseDouble(parts[2]);
@@ -398,7 +405,7 @@ public class ServerThread extends Thread {
 				server.sells.add(sell);
 				outStream.writeObject((String) (quant + " units of " + tintol.getName() + " put up for sale, for "
 						+ price + "€ each!"));
-				server.addTrToBlock(new TransacaoSell(wineName,price,quant,this.currentCli.getUser()));
+				server.addTrToBlock(new TransacaoSell(wineName,price,quant,this.currentCli.getUser(),bs));
 
 			} else {
 				sell.setQuant(sell.getQuant() + quant);
@@ -406,7 +413,7 @@ public class ServerThread extends Thread {
 				outStream.writeObject(
 						(String) ("ERROR - this sale already exists! \n\t" + "Only sell quantity updated\n\t")
 								+ (quant + " units of " + tintol.getName() + " added in previous sale"));
-				server.addTrToBlock(new TransacaoSell(wineName,price,quant,this.currentCli.getUser()));
+				server.addTrToBlock(new TransacaoSell(wineName,price,quant,this.currentCli.getUser(),bs));
 			}
 
 		} else {

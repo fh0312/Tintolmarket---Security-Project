@@ -112,6 +112,7 @@ public class TintolmarketServer {
 		this.messages = new MessageCatalog();
 		this.blks = new ArrayList<>();
 		if (users.exists()) {
+			new IntegrityVerifier().verifyFile(users);
 			loadWines();
 			loadUsers();
 			loadMessages();
@@ -234,7 +235,10 @@ public class TintolmarketServer {
 	private String decrypt(File cif, String pwd) throws IOException, NoSuchAlgorithmException,
 			NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException {
-		
+		boolean b = new IntegrityVerifier().verifyFile(cif);
+//		if(!b) {
+//			System.out.println("\n\nIntegridade VIOLADA\n\n");
+//		}
 		FileInputStream fs = new FileInputStream(cif);
 		byte[] enc = fs.readAllBytes();
 
@@ -266,7 +270,7 @@ public class TintolmarketServer {
 
 	private static void encryptFile(File aux, String pwd) throws NoSuchAlgorithmException, NoSuchPaddingException,
 			InvalidKeyException, IOException, InvalidKeySpecException {
-
+		new IntegrityVerifier().updateFile(aux);
 		byte[] salt = { (byte) 0xc9, (byte) 0x36, (byte) 0x78, (byte) 0x99, (byte) 0x52, (byte) 0x3e, (byte) 0xea,
 				(byte) 0xf2 };
 		PBEKeySpec keySpec = new PBEKeySpec(pwd.toCharArray(), salt, 20);

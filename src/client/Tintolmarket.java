@@ -73,9 +73,9 @@ public class Tintolmarket {
 			serverAddr = "127.0.0.1";
 			port = 12345;
 			truststorePath = "truststore.client";
-			keystorePath = "keystore.client3";
+			keystorePath = "keystore.client2";
 			pswdKeystore = "adminadmin";
-			userID = "client3";
+			userID = "client2";
 		}
 
 		else {
@@ -264,6 +264,16 @@ public class Tintolmarket {
 									System.out.print(new String(decryptedData));
 								}
 							}
+						}
+						else if(op.equals("b") || op.equals("buy") || op.equals("s") || op.equals("sell") ){
+							
+							byte[] ass = signNonce(privateKey, cmd);
+							
+							outStream.writeObject(cmd); // sending command
+							outStream.writeObject(ass);
+							
+							String ret = (String) inStream.readObject();
+							System.out.println("\n\t" + ret + "\n\n");
 						}
 						else {
 							outStream.writeObject(cmd); // sending command

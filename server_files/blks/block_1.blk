@@ -1,9 +1,0 @@
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-blk_id = 1
-n_trx = 5
-TransacaoSell->unidadesCriadas=100,idDono=client3,nomeVinho=wine2,valorPerUnit=10.0
-TransacaoSell->unidadesCriadas=100,idDono=client3,nomeVinho=wine2,valorPerUnit=10.0
-TransacaoSell->unidadesCriadas=100,idDono=client3,nomeVinho=wine2,valorPerUnit=10.0
-TransacaoSell->unidadesCriadas=100,idDono=client3,nomeVinho=wine2,valorPerUnit=10.0
-TransacaoSell->unidadesCriadas=100,idDono=client3,nomeVinho=wine2,valorPerUnit=10.0
-null
