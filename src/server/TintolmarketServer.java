@@ -65,7 +65,7 @@ public class TintolmarketServer {
 
 	protected SellsCatalog sells;
 
-	protected File users;
+	protected File usersFile;
 
 	protected MessageCatalog messages;
 	
@@ -107,21 +107,26 @@ public class TintolmarketServer {
 	public TintolmarketServer() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, IOException {
 		this.clients = new ConcurrentHashMap<String, Client>();
 		this.wines = new ConcurrentHashMap<String, Tintol>();
-		this.users = new File(SERVERPATH + "users.cif");
+		this.usersFile = new File(SERVERPATH + "users.cif");
 		this.sells = new SellsCatalog();
 		this.messages = new MessageCatalog();
 		this.blks = new ArrayList<>();
-		if (users.exists()) {
-			new IntegrityVerifier().verifyFile(users);
+		if (usersFile.exists()) {
+			try {
+				new IntegrityVerifier().verifyFile(usersFile);
+			} catch (Exception e) {
+				System.out.println("\n\n"+e.getMessage());
+				System.exit(-1);
+			}
 			loadWines();
 			loadUsers();
 			loadMessages();
 		} else {
 			try {
 				new File(SERVERPATH.substring(0, SERVERPATH.length() - 2)).mkdir();
-				users.createNewFile();
-				encryptFile(users, CIPHER_PASSWORD);
-				users = new File(users.getPath().substring(0, users.getPath().length()-4)+".cif");
+				usersFile.createNewFile();
+				encryptFile(usersFile, CIPHER_PASSWORD);
+				usersFile = new File(usersFile.getPath().substring(0, usersFile.getPath().length()-4)+".cif");
 				
 				new File(WINESPATH.substring(0, WINESPATH.length() - 2)).mkdir();
 				new File(MSGPATH.substring(0, MSGPATH.length() - 2)).mkdir();
@@ -165,7 +170,7 @@ public class TintolmarketServer {
 	private void loadUsers() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, IOException {
 		try {
 			
-			String content = decrypt(users, CIPHER_PASSWORD);
+			String content = decrypt(usersFile, CIPHER_PASSWORD);
 			Scanner scanner = new Scanner(content);
 			String currentLine;
 			while (scanner.hasNextLine()) { // For each user in user.txt file :
@@ -191,6 +196,7 @@ public class TintolmarketServer {
 				scCli.close();
 			}
 			scanner.close();
+			new IntegrityVerifier().updateFile(usersFile);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -235,10 +241,12 @@ public class TintolmarketServer {
 	private String decrypt(File cif, String pwd) throws IOException, NoSuchAlgorithmException,
 			NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException {
-		boolean b = new IntegrityVerifier().verifyFile(cif);
-//		if(!b) {
-//			System.out.println("\n\nIntegridade VIOLADA\n\n");
-//		}
+		try {
+			new IntegrityVerifier().verifyFile(cif);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		
 		FileInputStream fs = new FileInputStream(cif);
 		byte[] enc = fs.readAllBytes();
 
@@ -309,14 +317,15 @@ public class TintolmarketServer {
         } catch (IOException e) {
             e.printStackTrace();
         }
+		new IntegrityVerifier().updateFile(aux);
 	}
 
 	public void writeNewClient(String string) {
 		try {
 			StringBuilder sb = new StringBuilder();
-			String content = decrypt(users,CIPHER_PASSWORD);
+			String content = decrypt(usersFile,CIPHER_PASSWORD);
 			sb.append(content);
-			File temp = new File(users.getPath().substring(0, users.getPath().length()-4)+".txt");
+			File temp = new File(usersFile.getPath().substring(0, usersFile.getPath().length()-4)+".txt");
 			temp.createNewFile();
 			sb.append(string);
 			
@@ -324,6 +333,7 @@ public class TintolmarketServer {
 			writer.write(sb.toString());
 			writer.close();
 			encryptFile(temp, CIPHER_PASSWORD);
+			new IntegrityVerifier().updateFile(usersFile);
 			temp.delete();
 		}
 		catch(Exception e) {
@@ -333,7 +343,8 @@ public class TintolmarketServer {
 
 	public String getUsersContent() {
 		try {
-			return decrypt(users, CIPHER_PASSWORD);
+			new IntegrityVerifier().updateFile(usersFile);
+			return decrypt(usersFile, CIPHER_PASSWORD);
 		} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException
 				| BadPaddingException | InvalidAlgorithmParameterException | InvalidKeySpecException | IOException e) {
 			e.printStackTrace();

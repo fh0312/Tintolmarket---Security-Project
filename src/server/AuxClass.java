@@ -36,13 +36,29 @@ public class AuxClass {
 
 		String pwd = "adminadmin";
 
-		byte[] params = encryptFile(aux, pwd);
+//		byte[] params = encryptFile(aux, pwd);
+//
+//		String newFileName = aux.getPath().split("\\.")[0] + ".cif";
+//
+//		String content = decrypt(new File(newFileName), params, "adminadmin");
 
-		String newFileName = aux.getPath().split("\\.")[0] + ".cif";
-
-		String content = decrypt(new File(newFileName), params, "adminadmin");
-
-		System.out.println(content);
+		//System.out.println(content);
+		
+//		new IntegrityVerifier().updateFile(usersFile);
+//		boolean truee = new IntegrityVerifier().verifyFile(aux);
+//		
+////		pw = new PrintWriter(aux);
+////		pw.append("alterado\n");
+////		pw.close();
+//		
+//		boolean falsee = new IntegrityVerifier().verifyFile(aux);
+//		
+//		System.out.println("true="+truee+" |  false="+falsee);
+		
+		
+		
+		
+		
 	}
 
 	private static String decrypt(File cif, byte[] params, String pwd) throws IOException, NoSuchAlgorithmException,

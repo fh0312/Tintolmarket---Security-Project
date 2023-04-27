@@ -76,7 +76,7 @@ public class ServerThread extends Thread {
 	public ServerThread(Socket inSoc, TintolmarketServer s) {
 		this.socket = inSoc;
 		this.server = s;
-		this.users = s.users;
+		this.users = s.usersFile;
 		System.out.println("server:\tServer_thread initiated!!");
 	}
 

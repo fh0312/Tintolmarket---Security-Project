@@ -33,8 +33,16 @@ public class TransacaoBuy extends Transacao{
 	@Override
 	public String toString() {
 		return "TransacaoBuy->unidadesVendidas=" + unidadesVendidas + ",idNovoDono=" + idNovoDono + ",nomeVinho="
-				+ nomeVinho + ",valorPerUnit=" + valorPerUnit+ ",assinatura="+this.clientSign;
+				+ nomeVinho + ",valorPerUnit=" + valorPerUnit+ ",assinatura="+ byteArrayToHexString(clientSign);
 	}
+
+	private String byteArrayToHexString(byte[] data) {
+	    StringBuilder sb = new StringBuilder();
+	    for (byte b : data) {
+	        sb.append(String.format("%02X", b));
+	    }
+	    return sb.toString();
+}
     
     
 }

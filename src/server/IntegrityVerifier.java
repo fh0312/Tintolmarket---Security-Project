@@ -1,9 +1,7 @@
 package server;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,9 +12,10 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.HashMap;
 import java.util.Scanner;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 public class IntegrityVerifier {
 	
@@ -26,19 +25,24 @@ public class IntegrityVerifier {
     private SecretKey secretKey;
     private File hashLog;
     private HashMap<String, byte[]> fileHashes;
-    private static final String SERVER_PATH = "server_files//";
+    private final String SERVER_PATH = "server_files//";
+    private final String pwd = "adminadmin";
     
     private final String HASH_LOG_FILENAME = SERVER_PATH+"hashes.txt";
 
     public IntegrityVerifier() {
-    	KeyGenerator keyGen=null;
+    	byte[] salt = { (byte) 0xc9, (byte) 0x36, (byte) 0x78, (byte) 0x99, (byte) 0x52, (byte) 0x3e, (byte) 0xea,
+				(byte) 0xf2 };
+		PBEKeySpec keySpec = new PBEKeySpec(pwd.toCharArray(), salt, 20);
+		SecretKeyFactory kf;
+		SecretKey key=null;
 		try {
-			keyGen = KeyGenerator.getInstance("HmacSHA256");
-		} catch (NoSuchAlgorithmException e1) {
+			kf = SecretKeyFactory.getInstance("PBEWithHmacSHA256AndAES_128");
+			key = kf.generateSecret(keySpec);
+		} catch (NoSuchAlgorithmException | InvalidKeySpecException e1) {
 			e1.printStackTrace();
 		}
-        SecretKey secretKey = keyGen.generateKey();
-        this.secretKey=secretKey;
+		this.secretKey=key;
         this.fileHashes = new HashMap<>();
         this.hashLog = new File(SERVER_PATH + "hashes.txt");
         try {
@@ -47,21 +51,44 @@ public class IntegrityVerifier {
             e.printStackTrace();
         }
         load();
+        writeAll();
     }
 
-    public boolean verifyFile(File file) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    public boolean verifyFile(File file) throws Exception {
         load();
     	byte[] storedHash = this.fileHashes.get(file.getPath());
         if (storedHash == null) {
             return false;
         }
         byte[] currentHash = getHmac(file);
-        return MessageDigest.isEqual(storedHash, currentHash);
+        
+//        System.out.println("Novo   HMAC: "+byteArrayToHexString(currentHash));
+//        System.out.println("Antigo HMAC: "+byteArrayToHexString(storedHash));
+        
+        boolean ret = MessageDigest.isEqual(storedHash, currentHash);
+        
+        if(!ret) {
+        	throw new Exception(file.getPath()+" integrity violated. Aborting...");
+        }
+        
+        return ret;
     }
 	
     public void updateFile(File file) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     	load();
     	byte[] hmac = getHmac(file);
+    	if(this.fileHashes.containsKey(file.getPath())) {
+//    		System.out.println(file.getPath()+" -> Antes do update: "+byteArrayToHexString(this.fileHashes.get(file.getPath())));
+//        	
+//        	System.out.println(file.getPath()+" -> Depois do update: "+byteArrayToHexString(hmac));
+    	}
+    	else {
+//    		System.out.println(file.getPath()+" -> Criado com hmac: "+byteArrayToHexString(hmac));
+    	}
+    	
+    	
+    	//System.out.flush();
+    	
         this.fileHashes.remove(file.getPath());
         writeAll();
         this.fileHashes.put(file.getPath(), hmac);
@@ -84,6 +111,17 @@ public class IntegrityVerifier {
 //    }
     
     private void writeAll() {
+    	try {
+			new FileWriter(this.hashLog.getPath(), false).close();
+		} catch (IOException e2) {
+			e2.printStackTrace();
+		}
+    	try {
+			this.hashLog.createNewFile();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		for(String key : this.fileHashes.keySet()) {
 			try {
 				write(key, this.fileHashes.get(key));
@@ -117,6 +155,7 @@ public class IntegrityVerifier {
 					}
 				}
 			}
+			sc.close();
 			this.fileHashes = map;
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -131,32 +170,32 @@ public class IntegrityVerifier {
         return hmac.doFinal(fileData);
     }
     
-    private static void removeLine(String fileName, String stringToRemove) throws IOException {
-        File inputFile = new File(fileName);
-        File tempFile = new File("temp.txt");
-        BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            // If the line contains the string to remove, skip it
-            if (line.contains(stringToRemove)) {
-                continue;
-            }
-            // Otherwise, write the line to the temp file
-            writer.write(line);
-            writer.newLine();
-        }
-        // Close the input and output files
-        reader.close();
-        writer.close();
-        // Delete the original file and rename the temp file to the original filename
-        if (!inputFile.delete()) {
-            throw new IOException("Failed to delete file: " + inputFile);
-        }
-        if (!tempFile.renameTo(inputFile)) {
-            throw new IOException("Failed to rename file: " + tempFile + " -> " + inputFile);
-        }
-    }
+//    private static void removeLine(String fileName, String stringToRemove) throws IOException {
+//        File inputFile = new File(fileName);
+//        File tempFile = new File("temp.txt");
+//        BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+//        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+//        String line;
+//        while ((line = reader.readLine()) != null) {
+//            // If the line contains the string to remove, skip it
+//            if (line.contains(stringToRemove)) {
+//                continue;
+//            }
+//            // Otherwise, write the line to the temp file
+//            writer.write(line);
+//            writer.newLine();
+//        }
+//        // Close the input and output files
+//        reader.close();
+//        writer.close();
+//        // Delete the original file and rename the temp file to the original filename
+//        if (!inputFile.delete()) {
+//            throw new IOException("Failed to delete file: " + inputFile);
+//        }
+//        if (!tempFile.renameTo(inputFile)) {
+//            throw new IOException("Failed to rename file: " + tempFile + " -> " + inputFile);
+//        }
+//    }
     
     private String byteArrayToHexString(byte[] data) {
         StringBuilder sb = new StringBuilder();
