@@ -1,4 +1,4 @@
-package server;
+package server.transacao;
 
 public abstract class Transacao{
 

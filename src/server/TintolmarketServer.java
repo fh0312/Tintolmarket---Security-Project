@@ -10,8 +10,11 @@ import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.UnrecoverableEntryException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
@@ -32,6 +35,9 @@ import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 
+import server.transacao.Transacao;
+import server.transacao.TransacaoBuy;
+
 /**
  * @author Alexandre Müller - FC56343 Diogo Ramos - FC56308 Francisco Henriques
  *         - FC56348
@@ -50,14 +56,11 @@ public class TintolmarketServer {
 	private static int PORT;
 
 	private static String KEYSTORE_PATH = "server.keystore";
-	private static String TRUSTSTORE_PATH = "server.truststore";
+	///private static String TRUSTSTORE_PATH = "server.truststore";
 	private static String KEYSTORE_PASSWORD = "keystore_password";
-	private static String TRUSTSTORE_PASSWORD = "truststore_password";
+	//private static String TRUSTSTORE_PASSWORD = "truststore_password";
 	private static String CIPHER_PASSWORD = "pbe_password"; // cifra para cifrar o ficheiro de users - PBE - AES 128bits
 
-	private static final String ALGORITHM = "AES";
-	private static final int KEY_SIZE = 128;
-	private static final String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
 
 	protected ConcurrentHashMap<String, Client> clients;
 
@@ -116,6 +119,7 @@ public class TintolmarketServer {
 			loadWines();
 			loadUsers();
 			loadMessages();
+			//loadBlocks();
 		} else {
 			try {
 				new File(SERVERPATH.substring(0, SERVERPATH.length() - 2)).mkdir();
@@ -134,6 +138,58 @@ public class TintolmarketServer {
 		}
 	}
 	
+	private void loadBlocks() {
+		File blocksDir = new File(BLKPATH);
+		for(File bFile : blocksDir.listFiles()) {
+			try {
+				Scanner sc = new Scanner(bFile);
+				String str = sc.nextLine();
+				byte[] hashBlkAnterior = str.substring(1, str.length() - 1)
+                        				.replaceAll("\\s", "")
+                        				.getBytes();
+				
+				str= sc.nextLine();
+				long id = Long.parseLong(str.split("=")[1].trim());
+				
+				str= sc.nextLine();
+				int num =  Integer.parseInt(str.split("=")[1].trim());
+				
+				while (sc.hasNextLine()) {
+					str= sc.nextLine();
+					if(str.contains("Transacao")) {
+						for(String prop : str.split("->")[1].split(",")) { //aaa=bbb
+							if(str.contains("Sell")){
+								String[] parts = prop.split(",");
+								
+								int unidadesCriadas  = Integer.parseInt(parts[0].split("=")[1]);
+								String idDono  = parts[1].split("=")[1];
+								String nomeVinho  = parts[2].split("=")[1];
+								double valorPerUnit  = Double.parseDouble(parts[3].split("=")[1]);
+								byte[] assinatura  = new IntegrityVerifier().hexStringToByteArray(parts[4].split("=")[1]);
+								TransacaoBuy t = new TransacaoBuy(nomeVinho, valorPerUnit, unidadesCriadas, idDono, assinatura);
+								
+							}
+							else if(str.contains("Buy")){
+								
+							}
+						}
+					}
+					else {
+						break;
+					}
+				}
+				byte[] ass = new IntegrityVerifier().hexStringToByteArray(str);
+				
+				sc.close();
+				
+				
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+			
+		}
+	}
+	
 	private void verifyAllFiles() {
 		File dir = new File (SERVERPATH);
 		for(File f : dir.listFiles()) {
@@ -147,8 +203,6 @@ public class TintolmarketServer {
 			new IntegrityVerifier().updateIntegrity(f);
 		}
 	}
-
-
 
 	private void loadMessages() {
 		this.messages.load_msgs(clients);
@@ -371,8 +425,16 @@ public class TintolmarketServer {
 	}
 	
 	public void addTrToBlock(Transacao t){
-		if(this.blks.size()==0)
-			this.blks.add(new Block(null, 1));
+		if(this.blks.size()==0) {
+			Block b = new Block(null, 1);
+			try {
+				b.setPkey(getPkey());
+			} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableEntryException
+					| IOException e) {
+				e.printStackTrace();
+			}
+			this.blks.add(b);
+		}
 		else {
 			Block current = blks.get(blks.size()-1);
 			if(current.getN_trx() <5) {
@@ -380,13 +442,34 @@ public class TintolmarketServer {
 			}
 			else {
 				createNewBlock();
+				current = blks.get(blks.size()-1);
+				current.addTr(t);
 			}
 		}
 	}
 	
 	private void createNewBlock() {
 		byte[] oldHash =  blks.get(blks.size()-1).close();
-		this.blks.add(new Block(oldHash, blks.get(blks.size()-1).getBlk_id()+1));
+		Block b = new Block(oldHash, blks.get(blks.size()-1).getBlk_id()+1);
+		try {
+			b.setPkey(getPkey());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		this.blks.add(b);
+	}
+	
+	private PrivateKey getPkey() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableEntryException {
+		KeyStore keyStore = KeyStore.getInstance("JKS");
+		FileInputStream fis = new FileInputStream(KEYSTORE_PATH);
+		keyStore.load(fis,KEYSTORE_PASSWORD.toCharArray());
+		fis.close();
+		
+		KeyStore.PrivateKeyEntry pKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry("myServer",
+				new KeyStore.PasswordProtection(KEYSTORE_PASSWORD.toCharArray()));
+		
+		return pKeyEntry.getPrivateKey();
+		
 	}
 	
 	

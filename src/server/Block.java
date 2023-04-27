@@ -5,14 +5,24 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.DigestInputStream;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.crypto.SecretKey;
+
+import server.transacao.Transacao;
 
 public class Block {
 	
@@ -29,6 +39,10 @@ public class Block {
 	private File file;
 	
 	private String dir = "server_files//blks//";
+
+
+	private PrivateKey pKey; 
+
 	
 	
 	public Block(byte[] hash,long id) {
@@ -71,14 +85,46 @@ public class Block {
 		for(Transacao t : trx) {
 			sb.append(t.toString()+"\n");
 		}
-		sb.append(this.sigServer);
+		this.sigServer = createSig(sb.toString());
+		sb.append(new IntegrityVerifier().byteArrayToHexString(this.sigServer));
 		pw.write(sb.toString());
 		pw.close();
 		
 	}
 	
+	private byte[] createSig(String string) {
+		return sign(this.pKey,string);
+	}
+	
+	private static byte[] sign(PrivateKey privateKey, String nonce) {
+		Signature signature = null;
+		try {
+			signature = Signature.getInstance("SHA256withRSA");
+		} catch (NoSuchAlgorithmException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			signature.initSign(privateKey);
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		}
+		byte[] nonceBytes = nonce.getBytes(StandardCharsets.ISO_8859_1);
+		try {
+			signature.update(nonceBytes);
+		} catch (SignatureException e) {
+			e.printStackTrace();
+		}
+		byte[] nonceSigned = null;
+		try {
+			nonceSigned = signature.sign();
+		} catch (SignatureException e) {
+			e.printStackTrace();
+		}
+		return nonceSigned;
+	}
+
 	public byte[] close() {
-		String path = this.file.getParent()+"//arquivo";
+		String path = dir.substring(0, dir.length()-2);
 		File dir = new File(path);
 		dir.mkdir();
 		Path sourcePath = Paths.get(this.file.getAbsolutePath());
@@ -151,5 +197,10 @@ public class Block {
 
 	public void setFile(File file) {
 		this.file = file;
+	}
+
+	public void setPkey(PrivateKey pkey) {
+		this.pKey = pkey;
+		
 	}
 }

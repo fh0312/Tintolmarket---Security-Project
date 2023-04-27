@@ -11,8 +11,6 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
-import java.security.AlgorithmParameters;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -23,17 +21,11 @@ import java.security.cert.CertificateFactory;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.CipherOutputStream;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
+import server.transacao.Transacao;
+import server.transacao.TransacaoBuy;
+import server.transacao.TransacaoSell;
 
 /**
  * @author Alexandre Müller - FC56343 Diogo Ramos - FC56308 Francisco Henriques

@@ -55,6 +55,9 @@ public class IntegrityVerifier {
     }
 
     public boolean verifyFile(File file) throws Exception {
+    	if(file.isDirectory()) {
+    		return false;
+    	}
         load();
     	byte[] storedHash = this.fileHashes.get(file.getPath());
         if (storedHash == null) {
@@ -75,24 +78,16 @@ public class IntegrityVerifier {
     }
 	
     public void updateFile(File file) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
-    	load();
-    	byte[] hmac = getHmac(file);
-    	if(this.fileHashes.containsKey(file.getPath())) {
-//    		System.out.println(file.getPath()+" -> Antes do update: "+byteArrayToHexString(this.fileHashes.get(file.getPath())));
-//        	
-//        	System.out.println(file.getPath()+" -> Depois do update: "+byteArrayToHexString(hmac));
+    	
+    	if(!file.isDirectory() && !file.getPath().contains("hashes.txt")) {
+    		load();
+        	byte[] hmac = getHmac(file);
+            this.fileHashes.remove(file.getPath());
+            writeAll();
+            this.fileHashes.put(file.getPath(), hmac);
+            write(file.getPath(), hmac);
     	}
-    	else {
-//    		System.out.println(file.getPath()+" -> Criado com hmac: "+byteArrayToHexString(hmac));
-    	}
     	
-    	
-    	//System.out.flush();
-    	
-        this.fileHashes.remove(file.getPath());
-        writeAll();
-        this.fileHashes.put(file.getPath(), hmac);
-        write(file.getPath(), hmac);
         
     }
     
@@ -197,7 +192,7 @@ public class IntegrityVerifier {
 //        }
 //    }
     
-    private String byteArrayToHexString(byte[] data) {
+    public String byteArrayToHexString(byte[] data) {
         StringBuilder sb = new StringBuilder();
         for (byte b : data) {
             sb.append(String.format("%02X", b));
@@ -205,7 +200,7 @@ public class IntegrityVerifier {
         return sb.toString();
     }
     
-    private byte[] hexStringToByteArray(String s) {
+    public byte[] hexStringToByteArray(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
@@ -217,7 +212,10 @@ public class IntegrityVerifier {
     
 	public void updateIntegrity(File file) {
 		try {
-			new IntegrityVerifier().updateFile(file);
+			if(!file.isDirectory()) {
+				new IntegrityVerifier().updateFile(file);
+			}
+			
 		} catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
 			e.printStackTrace();
 		}
