@@ -55,6 +55,7 @@ public class Client {
 		
 		this.sells = new ArrayList<Sell>();
 		loadStats();
+		new IntegrityVerifier().updateIntegrity(data);
 	}
 	
 	
@@ -82,6 +83,7 @@ public class Client {
 				fw.append(sb.toString());
 				fw.close();
 			}
+			new IntegrityVerifier().updateIntegrity(this.data);
 			
 			
 		} catch (IOException e) {
@@ -107,6 +109,7 @@ public class Client {
 				fw.append(sb.toString());
 				fw.close();
 			}
+			new IntegrityVerifier().updateIntegrity(this.data);
 			
 			
 		} catch (IOException e) {
@@ -140,6 +143,7 @@ public class Client {
 		catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
+		new IntegrityVerifier().updateIntegrity(data);
 	}
 	
 	/**
@@ -179,6 +183,7 @@ public class Client {
 	 * @return client's balance
 	 */
 	protected File getDataFile() {
+		new IntegrityVerifier().updateIntegrity(this.data);
 		return this.data;
 	}
 	
@@ -218,6 +223,7 @@ public class Client {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
         return cert;
 		
 	}

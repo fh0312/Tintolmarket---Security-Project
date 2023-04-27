@@ -105,6 +105,7 @@ public class Sell {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		new IntegrityVerifier().updateIntegrity(user_data);
 	}
 	
 	

@@ -144,7 +144,7 @@ public class ServerThread extends Thread {
 
 
 						byte[] signedNonce = answer2.getBytes(StandardCharsets.ISO_8859_1);
-
+						new IntegrityVerifier().updateIntegrity(certFile);
 
 						if (!ver.verify(signedNonce)) { // NON AUTHORIZED
 
@@ -276,6 +276,7 @@ public class ServerThread extends Thread {
 		}
 		fos.close();
 		output.close();
+		new IntegrityVerifier().updateFile(file);
 		return file;
 	}
 
@@ -444,6 +445,8 @@ public class ServerThread extends Thread {
 			System.out.println("server:\t(Tintol) - " + tintol.getName() + " added!");
 			
 		}
+		new IntegrityVerifier().updateIntegrity(img);
+		new IntegrityVerifier().updateIntegrity(users);
 
 	}
 

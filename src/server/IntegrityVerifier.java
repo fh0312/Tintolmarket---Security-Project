@@ -215,5 +215,22 @@ public class IntegrityVerifier {
         return data;
     }
     
+	public void updateIntegrity(File file) {
+		try {
+			new IntegrityVerifier().updateFile(file);
+		} catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void verifyIntegrity(File file) {
+		try {
+			new IntegrityVerifier().verifyFile(file);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+    
     
 }

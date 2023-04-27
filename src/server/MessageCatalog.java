@@ -71,6 +71,7 @@ public class MessageCatalog {
 				e.printStackTrace();
 			}
 		}
+		new IntegrityVerifier().updateIntegrity(msg_data);
 		
 	}
 	
@@ -94,6 +95,7 @@ public class MessageCatalog {
 				if(!isLoading) {
 					write_last_msg(msg_data,dest);
 				}
+				new IntegrityVerifier().updateIntegrity(msg_data);
 				
 			}
 		} else {
@@ -111,6 +113,7 @@ public class MessageCatalog {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
+				new IntegrityVerifier().updateIntegrity(msg_data);
 			}
 		}
 		
@@ -139,6 +142,7 @@ public class MessageCatalog {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			new IntegrityVerifier().updateIntegrity(msg_data);
 		}
 		
 	}
@@ -170,9 +174,10 @@ public class MessageCatalog {
 							e.printStackTrace();
 						}
 					}
-	
+					new IntegrityVerifier().updateIntegrity(msgFile);
 				}
 			}
+			new IntegrityVerifier().updateIntegrity(msgsDir);
 		
 		}
 	}

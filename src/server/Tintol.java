@@ -38,6 +38,8 @@ public class Tintol {
 		this.rating=0.0;
 		this.n_avals=0;
 		writeStats();
+		new IntegrityVerifier().updateIntegrity(img);
+		new IntegrityVerifier().updateIntegrity(data);
 	}
 	
 
@@ -45,6 +47,8 @@ public class Tintol {
 		this.name = tintolName;
 		this.data = wineData;
 		this.img = img2;
+		new IntegrityVerifier().updateIntegrity(img);
+		new IntegrityVerifier().updateIntegrity(data);
 		Scanner dataSc;
 		try {
 			dataSc = new Scanner(wineData);
@@ -67,6 +71,7 @@ public class Tintol {
 				fw.append(sb.toString());
 				fw.close();
 			}
+			new IntegrityVerifier().updateIntegrity(data);
 			
 		} catch (IOException e) {
 			e.printStackTrace();

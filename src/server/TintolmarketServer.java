@@ -112,12 +112,7 @@ public class TintolmarketServer {
 		this.messages = new MessageCatalog();
 		this.blks = new ArrayList<>();
 		if (usersFile.exists()) {
-			try {
-				new IntegrityVerifier().verifyFile(usersFile);
-			} catch (Exception e) {
-				System.out.println("\n\n"+e.getMessage());
-				System.exit(-1);
-			}
+			verifyAllFiles();
 			loadWines();
 			loadUsers();
 			loadMessages();
@@ -131,17 +126,36 @@ public class TintolmarketServer {
 				new File(WINESPATH.substring(0, WINESPATH.length() - 2)).mkdir();
 				new File(MSGPATH.substring(0, MSGPATH.length() - 2)).mkdir();
 				new File(CLIPATH.substring(0, CLIPATH.length() - 2)).mkdir();
+				updateAllFiles();
+				
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
+	
+	private void verifyAllFiles() {
+		File dir = new File (SERVERPATH);
+		for(File f : dir.listFiles()) {
+			new IntegrityVerifier().verifyIntegrity(f);
+		}
+	}
+	
+	private void updateAllFiles() {
+		File dir = new File (SERVERPATH);
+		for(File f : dir.listFiles()) {
+			new IntegrityVerifier().updateIntegrity(f);
+		}
+	}
+
+
 
 	private void loadMessages() {
 		this.messages.load_msgs(clients);
 	}
 
 	private void loadWines() {
+		
 		File winesDir = new File(SERVERPATH + "wines");
 		if (winesDir.listFiles() != null) {
 			for (File wineData : winesDir.listFiles()) {
@@ -266,6 +280,7 @@ public class TintolmarketServer {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        new IntegrityVerifier().updateIntegrity(file);
 
 		AlgorithmParameters p = AlgorithmParameters.getInstance("PBEWithHmacSHA256AndAES_128");
 		p.init(params);
@@ -273,6 +288,7 @@ public class TintolmarketServer {
 		d.init(Cipher.DECRYPT_MODE, key, p);
 		byte[] dec = d.doFinal(enc);
 		fs.close();
+		new IntegrityVerifier().updateFile(cif);
 		return new String(dec);
 	}
 
@@ -305,7 +321,8 @@ public class TintolmarketServer {
 		cos.close();
 		fis.close();
 		fos.close();
-
+		
+		
 		byte[] params = c.getParameters().getEncoded();
 		
 		File paramsFile = new File("params.params");
@@ -318,6 +335,7 @@ public class TintolmarketServer {
             e.printStackTrace();
         }
 		new IntegrityVerifier().updateFile(aux);
+		new IntegrityVerifier().updateFile(paramsFile);
 	}
 
 	public void writeNewClient(String string) {
