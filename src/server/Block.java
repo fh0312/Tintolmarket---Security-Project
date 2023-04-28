@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.crypto.SecretKey;
-
 import server.transacao.Transacao;
 
 public class Block {
@@ -40,12 +38,11 @@ public class Block {
 	
 	private String dir = "server_files//blks//";
 
-
 	private PrivateKey pKey; 
 
 	
 	
-	public Block(byte[] hash,long id) {
+	public Block(byte[] previous,long id) {
 		this.hash = new byte[32];
 		blk_id = id;
 		new File(dir.substring(0,dir.length()-2)).mkdir();
@@ -55,14 +52,36 @@ public class Block {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		if(hash==null) {
+		if(previous==null) {
 			Arrays.fill(this.hash, (byte) 0);
 		}
 		else {
-			this.hash = hash;
+			this.hash = previous;
 		}
 		n_trx = 0;
 		trx = new ArrayList<>();
+		
+	}
+	
+	public Block(byte[] previous,long id,byte[] sig,List<Transacao>trs) {
+		this.hash = new byte[32];
+		blk_id = id;
+		new File(dir.substring(0,dir.length()-2)).mkdir();
+		file = new File (dir+"block_"+blk_id+".blk");
+		try {
+			file.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if(previous==null) {
+			Arrays.fill(this.hash, (byte) 0);
+		}
+		else {
+			this.hash = previous;
+		}
+		n_trx = 0;
+		trx = trs;
+		this.sigServer=sig;
 	}
 	
 	public void addTr(Transacao t) {
@@ -129,7 +148,7 @@ public class Block {
 		dir.mkdir();
 		Path sourcePath = Paths.get(this.file.getAbsolutePath());
         Path destinationPath = Paths.get(dir.getAbsolutePath()+"//"+this.file.getPath());
-
+        byte[] thisBlockHash=null;
         try {
             Files.move(sourcePath, destinationPath);
         }
@@ -142,17 +161,22 @@ public class Block {
             DigestInputStream digestInputStream = new DigestInputStream(inputStream, digest);
             byte[] buff = new byte[4096];
             while (digestInputStream.read(buff) > -1);
-            this.hash = digest.digest();
+            thisBlockHash = digest.digest();
+            digestInputStream.close();
         }
         catch(Exception e) {
         	
         }
         
-        return hash;
+        return thisBlockHash;
 	}
 
 	public byte[] getHash() {
 		return hash;
+	}
+	
+	public byte[] getThisHash() {
+		return null;
 	}
 
 	public void setHash(byte[] hash) {

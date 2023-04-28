@@ -43,11 +43,13 @@ public class Tintolmarket {
 	 */
 	private static final String CLIENTPATH = "client_files//";
 
-	public static void main(String[] args) throws ClassNotFoundException, NoSuchAlgorithmException, InvalidKeyException, KeyStoreException, CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+	public static void main(String[] args)
+			throws ClassNotFoundException, NoSuchAlgorithmException, InvalidKeyException, KeyStoreException,
+			CertificateException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
 		new File(CLIENTPATH.substring(0, CLIENTPATH.length() - 2)).mkdir();
 
 		Scanner inputCli = new Scanner(System.in);
-		
+
 		String serverAddr = "";
 		int port = 12345;
 		String truststorePath = "";
@@ -69,7 +71,7 @@ public class Tintolmarket {
 		}
 
 		else if (args.length == 0) {
-			// Caso teste //TODO  REMOVE 
+			// Caso teste //TODO REMOVE
 			serverAddr = "127.0.0.1";
 			port = 12345;
 			truststorePath = "truststore.client";
@@ -141,16 +143,10 @@ public class Tintolmarket {
 				byte[] nonce = nonceStr.getBytes(StandardCharsets.ISO_8859_1);
 
 				if (nonceStrReceived.contains(":true")) { // Nao esta registado
-					
-					
-					
-					String parte1 = new String(nonce, StandardCharsets.ISO_8859_1);
 
+					String parte1 = new String(nonce, StandardCharsets.ISO_8859_1);
 					byte[] nonceSigned = signNonce(privateKey, new String(nonce, StandardCharsets.ISO_8859_1));
 					String parte2 = new String(nonceSigned, StandardCharsets.ISO_8859_1);
-
-					// System.out.println("Resposta ao server com (nonce:signNonce) -> " +
-					// parte1+"\n\n"+parte2);
 
 					outStream.writeObject(parte1);
 					outStream.writeObject(parte2);
@@ -163,8 +159,7 @@ public class Tintolmarket {
 					}
 
 					Certificate cert = createCert(ks);
-					
-					
+
 					File certFile = null;
 					try {
 						certFile = getCertFile(cert, ks.aliases().nextElement());
@@ -172,35 +167,31 @@ public class Tintolmarket {
 						e.printStackTrace();
 					}
 
-					sendFile(cliSocket, inStream, certFile, outStream);
-
-					// enviar assinatura deste gerada com a sua
-					// chave privada, e o certificado com a chave pública correspondente.
+					
+					sendFile(cliSocket, inStream, certFile, outStream);// envia o certificado para o servidor
 
 				} else { // esta registado
 
-
 					byte[] nonceSigned = signNonce(privateKey, new String(nonce, StandardCharsets.ISO_8859_1));
-					
+
 					String parte2 = new String(nonceSigned, StandardCharsets.ISO_8859_1);
-					
+
 					outStream.writeObject(parte2);
 
 				}
 
-				String answer = (String) inStream.readObject(); // indicacao que foi aprovado o login //TODO
+				String answer = (String) inStream.readObject();
 
 				if (answer.equals("true")) { // loged in successfully
 					System.out.println("\n\t\tWelcome " + userID + " !");
 					while (true) {
 
 						displayOptions();
-						
+
 						String cmd = inputCli.nextLine();
 
 						String op = cmd.split("\\s+")[0];
-						
-						
+
 						if (op.equals("a") || op.equals("add")) {
 							outStream.writeObject(cmd); // sending command
 							String path = cmd.split("\\s+")[2];
@@ -209,78 +200,72 @@ public class Tintolmarket {
 							outStream.flush();
 							String ret = (String) inStream.readObject();
 							System.out.println("\n\t" + ret + "\n\n");
-						}
-						else if(op.equals("t") || op.equals("talk")) {
+						} else if (op.equals("t") || op.equals("talk")) {
 							String[] parts = cmd.split("\\s+");
 							String dest = parts[1];
-							
+
 							StringBuilder textSb = new StringBuilder();
-							
-							for(int  i = 2; i<parts.length;i++) {
-								textSb.append(parts[i]+" ");
+
+							for (int i = 2; i < parts.length; i++) {
+								textSb.append(parts[i] + " ");
 							}
-							
+
 							String text = textSb.toString().trim();
-							
-							System.out.println(text);
-							
+
 							FileInputStream fisTrust = new FileInputStream(truststorePath);
 							KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
 							trustStore.load(fisTrust, pswdKeystore.toCharArray());
 							fis.close();
-							
+
 							byte[] plaintextBytes = text.getBytes();
 
 							Cipher cipher = Cipher.getInstance("RSA");
 							cipher.init(Cipher.ENCRYPT_MODE, trustStore.getCertificate(dest).getPublicKey());
 							byte[] ciphertext = cipher.doFinal(plaintextBytes);
-							
-							cmd = "talk"+" "+dest+" ";
+
+							cmd = "talk" + " " + dest + " ";
 							outStream.writeObject(cmd); // sending command
 							outStream.writeObject(ciphertext);
 							String ret = (String) inStream.readObject();
 							System.out.println("\n\t" + ret + "\n\n");
-							
-						}
-						else if(op.equals("r") || op.equals("read")){
-							
+
+						} else if (op.equals("r") || op.equals("read")) {
+
 							outStream.writeObject(cmd); // sending command
-							
+
 							int numMsgs = (int) inStream.readObject();
-							
-							if(numMsgs==0) {
+
+							if (numMsgs == 0) {
 								String ret = (String) inStream.readObject();
 								System.out.println("\n\t" + ret + "\n\n");
-							}else{
+							} else {
 								String ret = (String) inStream.readObject();
-								System.out.print("\t"+ret);
-								for(int i =0;i<numMsgs;i++) {
+								System.out.print("\t" + ret);
+								for (int i = 0; i < numMsgs; i++) {
 									String ret2 = (String) inStream.readObject();
 									System.out.print(ret2);
 									byte[] encrypted = (byte[]) inStream.readObject();
 									Cipher cipher = Cipher.getInstance(privateKey.getAlgorithm());
 									cipher.init(Cipher.DECRYPT_MODE, privateKey);
 									byte[] decryptedData = cipher.doFinal(encrypted);
-									System.out.print(new String(decryptedData));
+									System.out.print(new String(decryptedData) + "\n");
 								}
 							}
-						}
-						else if(op.equals("b") || op.equals("buy") || op.equals("s") || op.equals("sell") ){
-							
+						} else if (op.equals("b") || op.equals("buy") || op.equals("s") || op.equals("sell")) {
+
 							byte[] ass = signNonce(privateKey, cmd);
-							
+
 							outStream.writeObject(cmd); // sending command
-							outStream.writeObject(ass);
-							
+							outStream.writeObject(ass); // sending signature
+
+							String ret = (String) inStream.readObject();
+							System.out.println("\n\t" + ret + "\n\n");
+						} else {
+							outStream.writeObject(cmd); // sending command
 							String ret = (String) inStream.readObject();
 							System.out.println("\n\t" + ret + "\n\n");
 						}
-						else {
-							outStream.writeObject(cmd); // sending command
-							String ret = (String) inStream.readObject();
-							System.out.println("\n\t" + ret + "\n\n");
-						}
-						
+
 						System.out.print("\n\tTo continue press ENTER...");
 						inputCli.nextLine();
 					}
@@ -307,9 +292,7 @@ public class Tintolmarket {
 				e1.printStackTrace();
 			}
 		}
-
 	}
-		
 
 	private static void sendFile(SSLSocket cliSocket, ObjectInputStream inStream, File certFile,
 			ObjectOutputStream outStream) throws ClassNotFoundException {

@@ -7,11 +7,13 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.security.AlgorithmParameters;
+import java.security.DigestInputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
@@ -19,7 +21,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,6 +39,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 
 import server.transacao.Transacao;
 import server.transacao.TransacaoBuy;
+import server.transacao.TransacaoSell;
 
 /**
  * @author Alexandre Müller - FC56343 Diogo Ramos - FC56308 Francisco Henriques
@@ -72,7 +75,7 @@ public class TintolmarketServer {
 
 	protected MessageCatalog messages;
 	
-	protected List<Block> blks;
+	protected ArrayList<Block> blks;
 	
 	protected int trsCounter;
 
@@ -119,7 +122,7 @@ public class TintolmarketServer {
 			loadWines();
 			loadUsers();
 			loadMessages();
-			//loadBlocks();
+			loadBlocks();
 		} else {
 			try {
 				new File(SERVERPATH.substring(0, SERVERPATH.length() - 2)).mkdir();
@@ -145,20 +148,21 @@ public class TintolmarketServer {
 				Scanner sc = new Scanner(bFile);
 				String str = sc.nextLine();
 				byte[] hashBlkAnterior = str.substring(1, str.length() - 1)
-                        				.replaceAll("\\s", "")
-                        				.getBytes();
+                        				.replaceAll("\\s", "").getBytes();
 				
 				str= sc.nextLine();
 				long id = Long.parseLong(str.split("=")[1].trim());
 				
+				
+				
 				str= sc.nextLine();
 				int num =  Integer.parseInt(str.split("=")[1].trim());
-				
+				ArrayList<Transacao> trs = new ArrayList<>();
 				while (sc.hasNextLine()) {
 					str= sc.nextLine();
 					if(str.contains("Transacao")) {
-						for(String prop : str.split("->")[1].split(",")) { //aaa=bbb
-							if(str.contains("Sell")){
+						String prop = str.split("->")[1];
+							if(str.contains("Buy")){
 								String[] parts = prop.split(",");
 								
 								int unidadesCriadas  = Integer.parseInt(parts[0].split("=")[1]);
@@ -167,29 +171,76 @@ public class TintolmarketServer {
 								double valorPerUnit  = Double.parseDouble(parts[3].split("=")[1]);
 								byte[] assinatura  = new IntegrityVerifier().hexStringToByteArray(parts[4].split("=")[1]);
 								TransacaoBuy t = new TransacaoBuy(nomeVinho, valorPerUnit, unidadesCriadas, idDono, assinatura);
-								
+								trs.add(t);
 							}
-							else if(str.contains("Buy")){
-								
+							else if(str.contains("Sell")){
+								String[] parts = prop.split(",");
+								int unidadesCriadas  = Integer.parseInt(parts[0].split("=")[1]);
+								String idDono  = parts[1].split("=")[1];
+								String nomeVinho  = parts[2].split("=")[1];
+								double valorPerUnit  = Double.parseDouble(parts[3].split("=")[1]);
+								byte[] assinatura  = new IntegrityVerifier().hexStringToByteArray(parts[4].split("=")[1]);
+								TransacaoSell t = new TransacaoSell(nomeVinho,valorPerUnit,unidadesCriadas,idDono,assinatura);
+								trs.add(t);
 							}
 						}
-					}
 					else {
 						break;
 					}
 				}
 				byte[] ass = new IntegrityVerifier().hexStringToByteArray(str);
-				
+				Block b = new Block(hashBlkAnterior,id,ass,trs);
 				sc.close();
-				
+				this.blks.add(b);
 				
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			}
 			
 		}
+		try {
+			verificaBlockChain();
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			System.exit(-1);
+		}
 	}
 	
+	/**
+	 * Funcao que verifica a integridade da blockChain comparando o hash guardado no bloco 
+	 * seguinte com o hash do ficheiro neste momento
+	 * 
+	 * @throws Exception - inidicando que a integridade foi violada
+	 */
+	private void verificaBlockChain() throws Exception {
+		for(Block b : this.blks) {
+			if(b.getBlk_id()<this.blks.size()) {
+				File file = b.getFile();
+				try {
+					FileInputStream inputStream = new FileInputStream(file);
+		            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+		            DigestInputStream digestInputStream = new DigestInputStream(inputStream, digest);
+		            byte[] buff = new byte[4096];
+		            while (digestInputStream.read(buff) > -1);
+		            byte[] thisBlockHash = digest.digest();
+		            Block nextBlock =  this.blks.get( (int) b.getBlk_id() );
+		            String str = Arrays.toString(thisBlockHash);
+		            byte[] bytes = str.substring(1, str.length() - 1).replaceAll("\\s", "").getBytes();
+		            if(!MessageDigest.isEqual(bytes,nextBlock.getHash())) {
+		            	throw new Exception("Blockchain integrity violated !");
+		            }
+				}
+				catch(Exception e) {
+					throw new Exception("Blockchain integrity violated !");
+				}
+			}
+		}
+		
+	}
+	
+	/**
+	 * Verifica a integridade de todos os ficheiros no servidor
+	 */
 	private void verifyAllFiles() {
 		File dir = new File (SERVERPATH);
 		for(File f : dir.listFiles()) {
@@ -197,6 +248,11 @@ public class TintolmarketServer {
 		}
 	}
 	
+	/**
+	 * Faz o update(integridade) a todos os ficheiros no inicio do servidor (sem ficheiros)
+	 * 
+	 * @requires Ficheiros tenham acabado de ser criados pois anula os efeitos da verificacao de integridade.
+	 */
 	private void updateAllFiles() {
 		File dir = new File (SERVERPATH);
 		for(File f : dir.listFiles()) {
@@ -305,7 +361,23 @@ public class TintolmarketServer {
 		}
 
 	}
-
+	
+	
+	/**
+	 * Desencripta um ficheiro cifrado, tendo por base uma password
+	 * 
+	 * @param cif - ficheiro a decifrar
+	 * @param pwd - password
+	 * @return
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchPaddingException
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws BadPaddingException
+	 * @throws InvalidAlgorithmParameterException
+	 * @throws InvalidKeySpecException
+	 */
 	private String decrypt(File cif, String pwd) throws IOException, NoSuchAlgorithmException,
 			NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException {
@@ -346,9 +418,21 @@ public class TintolmarketServer {
 		return new String(dec);
 	}
 
+	/**
+	 * Encripta um ficheiro tenod em conta uma password
+	 * 
+	 * @param aux - ficheiro a encriptar
+	 * @param pwd - password
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchPaddingException
+	 * @throws InvalidKeyException
+	 * @throws IOException
+	 * @throws InvalidKeySpecException
+	 */
 	private static void encryptFile(File aux, String pwd) throws NoSuchAlgorithmException, NoSuchPaddingException,
 			InvalidKeyException, IOException, InvalidKeySpecException {
 		new IntegrityVerifier().updateFile(aux);
+		
 		byte[] salt = { (byte) 0xc9, (byte) 0x36, (byte) 0x78, (byte) 0x99, (byte) 0x52, (byte) 0x3e, (byte) 0xea,
 				(byte) 0xf2 };
 		PBEKeySpec keySpec = new PBEKeySpec(pwd.toCharArray(), salt, 20);
@@ -412,7 +496,12 @@ public class TintolmarketServer {
 			
 		}
 	}
-
+	
+	/**
+	 * Obtem o conteudo do ficheiro users.cif e retornando-o de modo a que o ficheiro continue cifrado.
+	 * 
+	 * @return - conteudo do ficheiro users.cif decifrado.
+	 */
 	public String getUsersContent() {
 		try {
 			new IntegrityVerifier().updateFile(usersFile);
@@ -424,6 +513,10 @@ public class TintolmarketServer {
 		return null;
 	}
 	
+	/**
+	 * Adiciona uma nova transacao ao bloco corrente
+	 * @param t
+	 */
 	public void addTrToBlock(Transacao t){
 		if(this.blks.size()==0) {
 			Block b = new Block(null, 1);
@@ -448,6 +541,9 @@ public class TintolmarketServer {
 		}
 	}
 	
+	/**
+	 * Fecha o bloco corrente, cria um novo e adiciona-o à lista de blocos
+	 */
 	private void createNewBlock() {
 		byte[] oldHash =  blks.get(blks.size()-1).close();
 		Block b = new Block(oldHash, blks.get(blks.size()-1).getBlk_id()+1);
@@ -458,6 +554,7 @@ public class TintolmarketServer {
 		}
 		this.blks.add(b);
 	}
+	
 	
 	private PrivateKey getPkey() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableEntryException {
 		KeyStore keyStore = KeyStore.getInstance("JKS");
