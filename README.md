@@ -28,3 +28,26 @@ Sistema Tintolmarket, um sistema do tipo cliente-servidor que oferece um serviç
         3. Colocar uma imagem no diretório client_files
         4. Abrir um terminal e executar comando "java -jar Tintolmarket.jar localhost:12345 truststore.client keystore.client1 adminadmin client1"        
         5. No final para terminar os programas executar a combinação de teclas CTRL+C
+
+--English--
+
+## Description
+Tintolmarket System, a client-server system that offers a service similar to Vivino, but allows users of the system to buy and sell wines.
+
+## How to run
+
+    1. Open a terminal within the folder where the JAR files are located.
+    2. Run the TintolmarketServer JAR with <port> <encryption-password> <keystore-file_path> <keystore-password>.
+    3. Place the images of the wines (that will be later added) in the client_files directory.
+    4. Run the Tintolmarket JAR with <serverAddress> <truststore> <keystore> <keystore-password> <userID>.
+    5. Write the desired command and press ENTER after each command to execute another one.
+    6. To end the client program, press the CTRL+C key combination.
+    7. Also, execute step 6 to terminate the server program.
+
+    Example:
+
+        1. Open the directory where the JAR files are located.
+        2. Open a terminal and execute the command "java -jar TintolmarketServer.jar 12345 adminadmin keystore.server adminadmin".
+        3. Place an image in the client_files directory.
+        4. Open a terminal and execute the command "java -jar Tintolmarket.jar localhost:12345 truststore.client keystore.client1 adminadmin client1".
+        5. To end the programs, press the CTRL+C key combination.
