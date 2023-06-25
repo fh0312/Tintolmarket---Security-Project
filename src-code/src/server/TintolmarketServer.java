@@ -80,16 +80,9 @@ public class TintolmarketServer {
 	protected int trsCounter;
 
 	public static void main(String[] args) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, IOException {
-		if (args.length == 0) {
-			PORT = 12345;
-			KEYSTORE_PATH = "keystore.server";
-			KEYSTORE_PASSWORD = "adminadmin";
-			CIPHER_PASSWORD = "adminadmin";
-
-			// TODO - remover !!
-		} else if (args.length != 1) {
+		if (args.length != 4) {
 			System.err.println(
-					"Modo de Uso: TintolmarketServer <port>" + "<password-cifra> <keystore> <password-keystore>");
+					"Modo de Uso: TintolmarketServer <port> " + "<password-cifra> <keystore> <password-keystore>");
 			System.exit(-1);
 		} else {
 			PORT = (int) Integer.parseInt(args[0]);
@@ -526,7 +519,9 @@ public class TintolmarketServer {
 					| IOException e) {
 				e.printStackTrace();
 			}
+			b.addTr(t);
 			this.blks.add(b);
+			
 		}
 		else {
 			Block current = blks.get(blks.size()-1);

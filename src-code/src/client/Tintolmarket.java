@@ -70,16 +70,6 @@ public class Tintolmarket {
 			userID = args[4];
 		}
 
-		else if (args.length == 0) {
-			// Caso teste //TODO REMOVE
-			serverAddr = "127.0.0.1";
-			port = 12345;
-			truststorePath = "truststore.client";
-			keystorePath = "keystore.client2";
-			pswdKeystore = "adminadmin";
-			userID = "client2";
-		}
-
 		else {
 			System.err.println("Modo de Uso: \tTintolmarket <serverAddress> <truststore> <keystore> "
 					+ "<password-keystore> <userID>");
